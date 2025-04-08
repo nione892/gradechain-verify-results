@@ -27,16 +27,24 @@ const AdminDashboard: React.FC = () => {
       if (success) {
         toast({
           title: "Teacher Added",
-          description: `Added ${teacherAddress.substring(0, 6)}...${teacherAddress.substring(teacherAddress.length - 4)} as a teacher`,
-          icon: <BadgeCheck className="h-4 w-4 text-green-500" />,
+          description: (
+            <div className="flex items-center">
+              <BadgeCheck className="h-4 w-4 text-green-500 mr-2" />
+              <span>Added {teacherAddress.substring(0, 6)}...{teacherAddress.substring(teacherAddress.length - 4)} as a teacher</span>
+            </div>
+          ),
         });
         setTeacherAddress('');
       } else {
         toast({
           variant: "destructive",
           title: "Failed to Add Teacher",
-          description: "There was an error adding the teacher. Please try again.",
-          icon: <AlertTriangle className="h-4 w-4" />,
+          description: (
+            <div className="flex items-center">
+              <AlertTriangle className="h-4 w-4 mr-2" />
+              <span>There was an error adding the teacher. Please try again.</span>
+            </div>
+          ),
         });
       }
     } catch (error) {

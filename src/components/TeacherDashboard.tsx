@@ -71,8 +71,12 @@ const TeacherDashboard: React.FC = () => {
         setResultHash(hash);
         toast({
           title: "Result Uploaded",
-          description: "Student result has been recorded on the blockchain",
-          icon: <CheckCircle className="h-4 w-4 text-green-500" />,
+          description: (
+            <div className="flex items-center">
+              <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
+              <span>Student result has been recorded on the blockchain</span>
+            </div>
+          )
         });
         
         // Reset form
