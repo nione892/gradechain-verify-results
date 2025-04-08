@@ -1,4 +1,3 @@
-
 import { ethers } from 'ethers';
 
 // Placeholder for actual contract address and ABI
@@ -74,7 +73,8 @@ const ADMIN_ADDRESSES = [
 
 // Demo teacher addresses (in a real app, this would be maintained by the contract)
 let TEACHER_ADDRESSES = [
-  '0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0'.toLowerCase()
+  '0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0'.toLowerCase(),
+  '0x397a5902c9A1D8a885B909329a66AA2cc096cCee'.toLowerCase()
 ];
 
 export const getProvider = (): ethers.providers.Web3Provider | null => {
@@ -221,4 +221,3 @@ export const calculateResultHash = (resultData: any): string => {
   const dataString = JSON.stringify(resultData);
   return ethers.utils.id(dataString);
 };
-
