@@ -1,8 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Wallet, AlertTriangle } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
+import { Wallet, Shield, GraduationCap, User, AlertTriangle } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { getUserRole, UserRole } from '@/utils/web3Utils';
 
 declare global {
   interface Window {
@@ -10,8 +11,15 @@ declare global {
   }
 }
 
+const roleIcons = {
+  admin: <Shield className="h-4 w-4 text-primary" />,
+  teacher: <GraduationCap className="h-4 w-4 text-primary" />,
+  student: <User className="h-4 w-4" />
+};
+
 const ConnectWallet: React.FC = () => {
   const [account, setAccount] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<UserRole>(null);
   const [connecting, setConnecting] = useState(false);
   const { toast } = useToast();
 
@@ -24,8 +32,11 @@ const ConnectWallet: React.FC = () => {
       window.ethereum.on('accountsChanged', (accounts: string[]) => {
         if (accounts.length === 0) {
           setAccount(null);
+          setUserRole(null);
         } else {
           setAccount(accounts[0]);
+          const role = getUserRole(accounts[0]);
+          setUserRole(role);
           toast({
             title: "Wallet Connected",
             description: `Connected to ${shortenAddress(accounts[0])}`,
@@ -41,6 +52,8 @@ const ConnectWallet: React.FC = () => {
         const accounts = await window.ethereum.request({ method: 'eth_accounts' });
         if (accounts.length > 0) {
           setAccount(accounts[0]);
+          const role = getUserRole(accounts[0]);
+          setUserRole(role);
         }
       } catch (error) {
         console.error("Error checking connection:", error);
@@ -62,6 +75,9 @@ const ConnectWallet: React.FC = () => {
     try {
       const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
       setAccount(accounts[0]);
+      const role = getUserRole(accounts[0]);
+      setUserRole(role);
+      
       toast({
         title: "Wallet Connected",
         description: `Connected to ${shortenAddress(accounts[0])}`,
@@ -86,7 +102,8 @@ const ConnectWallet: React.FC = () => {
     <div>
       {account ? (
         <Button variant="outline" className="flex items-center gap-2">
-          <Wallet className="h-4 w-4" />
+          {userRole && roleIcons[userRole]}
+          <span>{userRole ? userRole.charAt(0).toUpperCase() + userRole.slice(1) : 'Connected'}: </span>
           <span>{shortenAddress(account)}</span>
         </Button>
       ) : (
