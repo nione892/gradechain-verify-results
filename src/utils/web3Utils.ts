@@ -69,7 +69,7 @@ export type UserRole = 'admin' | 'teacher' | 'student' | null;
 
 // Demo admin addresses (in a real app, this would be in the contract)
 const ADMIN_ADDRESSES = [
-  '0x742d35Cc6634C0532925a3b844Bc454e4438f44e'.toLowerCase()
+  '0x4C61950Ad3C9626B2df9B2BF698ABC2896a67c90'.toLowerCase()
 ];
 
 // Demo teacher addresses (in a real app, this would be maintained by the contract)
