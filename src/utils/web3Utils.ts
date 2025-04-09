@@ -1,4 +1,3 @@
-
 import { ethers } from 'ethers';
 import { getContractAddress } from './contractDeployer';
 
@@ -289,9 +288,7 @@ export const uploadResult = async (studentId: string, resultData: any): Promise<
 };
 
 // For demo purposes, this function will simulate verification or use the contract if deployed
-export const verifyResultHash = async (
-  resultId: string
-): Promise<VerificationResult> => {
+export const verifyResultHash = async (resultId: string): Promise<VerificationResult> => {
   try {
     const contractAddress = getContractAddress();
     
@@ -355,4 +352,43 @@ export const calculateResultHash = (resultData: any): string => {
   // to create a proper hash of the result data
   const dataString = JSON.stringify(resultData);
   return ethers.utils.id(dataString);
+};
+
+// New function to get student results by connected wallet
+export const getStudentResultsByWallet = async (): Promise<ResultData[]> => {
+  try {
+    const provider = getProvider();
+    if (!provider) throw new Error("No provider available");
+    
+    const accounts = await provider.send('eth_accounts', []);
+    if (accounts.length === 0) throw new Error("No wallet connected");
+    
+    const studentWallet = accounts[0].toLowerCase();
+    
+    // In a real implementation, this would query the blockchain for results
+    // associated with this wallet address
+    
+    // For demo purposes, we'll import the demo data and filter based on wallet
+    // This is simulating what would happen in a real blockchain implementation
+    
+    const { demoResults } = await import('@/utils/demoData');
+    
+    // Simulate a delay to mimic blockchain query
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    // For demo, we'll return the first result for 0x397 wallet, second for another wallet, empty for others
+    if (studentWallet === '0x397a5902c9a1d8a885b909329a66aa2cc096ccee'.toLowerCase()) {
+      return [Object.values(demoResults)[0]];
+    } else if (studentWallet === '0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0'.toLowerCase()) {
+      return [Object.values(demoResults)[1]];
+    } else if (studentWallet === '0x4c61950ad3c9626b2df9b2bf698abc2896a67c90'.toLowerCase()) {
+      // Admin gets all results for demo
+      return Object.values(demoResults);
+    }
+    
+    return [];
+  } catch (error) {
+    console.error("Error fetching student results:", error);
+    return [];
+  }
 };

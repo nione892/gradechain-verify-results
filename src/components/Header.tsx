@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Blocks, LayoutDashboard, Search } from 'lucide-react';
+import { Blocks, LayoutDashboard, Search, GraduationCap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ConnectWallet from './ConnectWallet';
 import { getUserRole, UserRole } from '@/utils/web3Utils';
@@ -78,6 +78,18 @@ const Header: React.FC = () => {
               >
                 <LayoutDashboard className="h-4 w-4" />
                 Teacher Dashboard
+              </Button>
+            </Link>
+          )}
+          
+          {userRole === 'student' && (
+            <Link to="/student">
+              <Button 
+                variant={location.pathname === '/student' ? 'default' : 'ghost'}
+                className="flex items-center gap-2"
+              >
+                <GraduationCap className="h-4 w-4" />
+                My Results
               </Button>
             </Link>
           )}
