@@ -1,27 +1,62 @@
-import { ethers } from 'ethers';
 
-// Placeholder for actual contract address and ABI
-// In production, these would come from your deployed contract
-const GRADECHAIN_CONTRACT_ADDRESS = '0x0000000000000000000000000000000000000000';
-const GRADECHAIN_CONTRACT_ABI = [
-  // Simplified ABI for demonstration purposes
+import { ethers } from 'ethers';
+import { getContractAddress } from './contractDeployer';
+
+// Contract ABI for the GradeChain contract
+export const GRADECHAIN_CONTRACT_ABI = [
+  {
+    "inputs": [],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "string",
+        "name": "studentId",
+        "type": "string"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "resultHash",
+        "type": "bytes32"
+      }
+    ],
+    "name": "ResultAdded",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "teacherAddress",
+        "type": "address"
+      }
+    ],
+    "name": "TeacherAdded",
+    "type": "event"
+  },
   {
     "inputs": [
+      {
+        "internalType": "string",
+        "name": "studentId",
+        "type": "string"
+      },
       {
         "internalType": "bytes32",
         "name": "resultHash",
         "type": "bytes32"
       }
     ],
-    "name": "verifyResult",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
+    "name": "addResult",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -40,19 +75,62 @@ const GRADECHAIN_CONTRACT_ABI = [
   {
     "inputs": [
       {
-        "internalType": "string",
-        "name": "studentId",
-        "type": "string"
-      },
+        "internalType": "address",
+        "name": "teacherAddress",
+        "type": "address"
+      }
+    ],
+    "name": "isTeacher",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "owner",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
       {
         "internalType": "bytes32",
         "name": "resultHash",
         "type": "bytes32"
       }
     ],
-    "name": "addResult",
-    "outputs": [],
-    "stateMutability": "nonpayable",
+    "name": "verifyResult",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   }
 ];
@@ -89,8 +167,14 @@ export const getContract = (): ethers.Contract | null => {
   const provider = getProvider();
   if (!provider) return null;
   
+  const contractAddress = getContractAddress();
+  if (!contractAddress) {
+    console.error('Contract address not found');
+    return null;
+  }
+  
   return new ethers.Contract(
-    GRADECHAIN_CONTRACT_ADDRESS,
+    contractAddress,
     GRADECHAIN_CONTRACT_ABI,
     provider
   );
@@ -138,14 +222,26 @@ export const addTeacher = async (teacherAddress: string): Promise<boolean> => {
       throw new Error('Only admins can add teachers');
     }
     
-    // In a real implementation, this would call the smart contract
-    // const contract = getContract();
-    // const signer = provider.getSigner();
-    // const connectedContract = contract.connect(signer);
-    // await connectedContract.addTeacher(teacherAddress);
+    const contractAddress = getContractAddress();
     
-    // Demo implementation - add to local array
-    TEACHER_ADDRESSES.push(teacherAddress.toLowerCase());
+    if (contractAddress) {
+      // If contract is deployed, use it to add the teacher
+      const contract = getContract();
+      if (!contract) throw new Error('Contract not available');
+      
+      const signer = provider.getSigner();
+      const connectedContract = contract.connect(signer);
+      
+      const tx = await connectedContract.addTeacher(teacherAddress);
+      await tx.wait();
+      
+      // Still add to local array for UI state
+      TEACHER_ADDRESSES.push(teacherAddress.toLowerCase());
+    } else {
+      // Demo implementation - add to local array
+      TEACHER_ADDRESSES.push(teacherAddress.toLowerCase());
+    }
+    
     return true;
   } catch (error) {
     console.error('Error adding teacher:', error);
@@ -170,11 +266,19 @@ export const uploadResult = async (studentId: string, resultData: any): Promise<
     // Calculate hash from result data
     const resultHash = calculateResultHash(resultData);
     
-    // In a real implementation, this would call the smart contract
-    // const contract = getContract();
-    // const signer = provider.getSigner();
-    // const connectedContract = contract.connect(signer);
-    // await connectedContract.addResult(studentId, resultHash);
+    const contractAddress = getContractAddress();
+    
+    if (contractAddress) {
+      // If contract is deployed, use it to add the result
+      const contract = getContract();
+      if (!contract) throw new Error('Contract not available');
+      
+      const signer = provider.getSigner();
+      const connectedContract = contract.connect(signer);
+      
+      const tx = await connectedContract.addResult(studentId, resultHash);
+      await tx.wait();
+    }
     
     // Demo implementation - just return true
     return true;
@@ -184,32 +288,63 @@ export const uploadResult = async (studentId: string, resultData: any): Promise<
   }
 };
 
-// For demo purposes, this function will simulate verification
+// For demo purposes, this function will simulate verification or use the contract if deployed
 export const verifyResultHash = async (
   resultId: string
 ): Promise<VerificationResult> => {
-  // In the actual implementation, this would call the smart contract
-  // const contract = getContract();
-  // if (!contract) throw new Error('Contract not available');
-  // const isVerified = await contract.verifyResult(ethers.utils.id(resultId));
-  
-  // Demo implementation - simulate blockchain verification
-  await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate network delay
-  
-  // For demo, we'll verify if the hash ends with specific characters
-  const isVerified = resultId.endsWith('123');
-  
-  if (isVerified) {
-    return {
-      isVerified: true,
-      timestamp: Date.now(),
-      issuer: '0x742d35Cc6634C0532925a3b844Bc454e4438f44e',
-      message: 'Result hash verified on blockchain'
-    };
-  } else {
+  try {
+    const contractAddress = getContractAddress();
+    
+    if (contractAddress) {
+      // If contract is deployed, use it to verify the result
+      const contract = getContract();
+      if (!contract) throw new Error('Contract not available');
+      
+      // For demo purposes, we'll use the string as a hash directly
+      // In production, you'd calculate the hash properly
+      const resultHash = ethers.utils.id(resultId);
+      
+      const [isVerified, timestamp, issuer] = await contract.verifyResult(resultHash);
+      
+      if (isVerified) {
+        return {
+          isVerified: true,
+          timestamp: timestamp.toNumber(),
+          issuer: issuer,
+          message: 'Result hash verified on blockchain'
+        };
+      } else {
+        return {
+          isVerified: false,
+          message: 'Result hash not found on blockchain'
+        };
+      }
+    } else {
+      // Demo implementation - simulate blockchain verification
+      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate network delay
+      
+      // For demo, we'll verify if the hash ends with specific characters
+      const isVerified = resultId.endsWith('123');
+      
+      if (isVerified) {
+        return {
+          isVerified: true,
+          timestamp: Date.now(),
+          issuer: '0x742d35Cc6634C0532925a3b844Bc454e4438f44e',
+          message: 'Result hash verified on blockchain'
+        };
+      } else {
+        return {
+          isVerified: false,
+          message: 'Result hash not found on blockchain'
+        };
+      }
+    }
+  } catch (error) {
+    console.error('Error verifying result:', error);
     return {
       isVerified: false,
-      message: 'Result hash not found on blockchain'
+      message: 'Error during verification process'
     };
   }
 };

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { BadgeCheck, UserPlus, AlertTriangle } from 'lucide-react';
+import ContractDeployment from './ContractDeployment';
 
 const AdminDashboard: React.FC = () => {
   const [teacherAddress, setTeacherAddress] = useState('');
@@ -67,6 +68,8 @@ const AdminDashboard: React.FC = () => {
           Manage teachers and system settings for the GradeChain platform.
         </p>
       </div>
+
+      <ContractDeployment />
 
       <div className="bg-card p-6 rounded-lg border shadow-sm mb-8">
         <h2 className="text-xl font-semibold mb-4 flex items-center">
