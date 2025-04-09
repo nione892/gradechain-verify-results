@@ -1,5 +1,6 @@
 import { ethers } from 'ethers';
 import { getContractAddress } from './contractDeployer';
+import { ResultData } from './demoData';
 
 // Contract ABI for the GradeChain contract
 export const GRADECHAIN_CONTRACT_ABI = [
