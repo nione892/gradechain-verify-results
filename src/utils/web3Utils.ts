@@ -355,7 +355,7 @@ export const calculateResultHash = (resultData: any): string => {
   return ethers.utils.id(dataString);
 };
 
-// New function to get student results by connected wallet
+// Get student results by connected wallet
 export const getStudentResultsByWallet = async (): Promise<ResultData[]> => {
   try {
     const provider = getProvider();
@@ -377,8 +377,12 @@ export const getStudentResultsByWallet = async (): Promise<ResultData[]> => {
     // Simulate a delay to mimic blockchain query
     await new Promise(resolve => setTimeout(resolve, 1500));
     
-    // For demo, we'll return the first result for 0x397 wallet, second for another wallet, empty for others
-    if (studentWallet === '0x397a5902c9a1d8a885b909329a66aa2cc096ccee'.toLowerCase()) {
+    // Check for the specific wallet requested by the user
+    if (studentWallet === '0x5fb717f3b4f7c3e0e5cd09acb1481c2d9fc70104'.toLowerCase()) {
+      return [demoResults['STU20210001-SEM2-123'], demoResults['STU20210003-SEM3-789']];
+    }
+    // For demo, return other results based on wallet address
+    else if (studentWallet === '0x397a5902c9a1d8a885b909329a66aa2cc096ccee'.toLowerCase()) {
       return [Object.values(demoResults)[0]];
     } else if (studentWallet === '0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0'.toLowerCase()) {
       return [Object.values(demoResults)[1]];
