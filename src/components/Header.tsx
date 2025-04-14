@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Blocks, LayoutDashboard, Search, GraduationCap, Info } from 'lucide-react';
+import { Blocks, LayoutDashboard, Search, GraduationCap, Info, FileCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ConnectWallet from './ConnectWallet';
 import { getUserRole, UserRole } from '@/utils/web3Utils';
@@ -58,12 +58,13 @@ const Header: React.FC = () => {
   }, []);
 
   const toggleBlockchainMode = () => {
-    setIsRealBlockchainMode(prev => !prev);
+    const newMode = !isRealBlockchainMode;
+    setIsRealBlockchainMode(newMode);
     toast({
-      title: isRealBlockchainMode ? "Demo Mode Activated" : "Real Blockchain Mode Activated",
-      description: isRealBlockchainMode 
-        ? "Now using local verification without blockchain transactions" 
-        : "Now using real blockchain verification with Ethereum Sepolia testnet",
+      title: newMode ? "Real Blockchain Mode Activated" : "Demo Mode Activated",
+      description: newMode 
+        ? "Now using real blockchain verification with Ethereum Sepolia testnet" 
+        : "Now using local verification without blockchain transactions",
     });
   };
 
@@ -80,8 +81,8 @@ const Header: React.FC = () => {
           </Link>
 
           <div className="flex items-center space-x-4">
-            <div className="flex items-center mr-4 bg-muted/50 p-2 rounded-lg">
-              <Label htmlFor="blockchain-mode" className={`text-xs mr-2 ${isRealBlockchainMode ? 'text-primary' : 'text-muted-foreground'}`}>
+            <div className="flex items-center mr-4 bg-muted/50 p-2 rounded-lg shadow-sm">
+              <Label htmlFor="blockchain-mode" className={`text-xs mr-2 ${isRealBlockchainMode ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
                 {isRealBlockchainMode ? 'Real Blockchain' : 'Demo Mode'}
               </Label>
               <Switch
@@ -109,8 +110,8 @@ const Header: React.FC = () => {
                   variant={location.pathname === '/teacher' ? 'default' : 'ghost'}
                   className="flex items-center gap-2"
                 >
-                  <LayoutDashboard className="h-4 w-4" />
-                  Teacher Dashboard
+                  <FileCheck className="h-4 w-4" />
+                  Teacher Portal
                 </Button>
               </Link>
             )}
@@ -133,7 +134,7 @@ const Header: React.FC = () => {
                 className="flex items-center gap-2"
               >
                 <Search className="h-4 w-4" />
-                Verify Results
+                Verify
               </Button>
             </Link>
             
