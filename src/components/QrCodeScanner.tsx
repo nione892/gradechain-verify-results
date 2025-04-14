@@ -1,9 +1,10 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { QrReader } from 'react-qr-reader';
 import { Button } from '@/components/ui/button';
-import { X, Camera, RefreshCw, ScanLine } from 'lucide-react';
+import { X, Camera, RefreshCw, ScanLine, CameraOff } from 'lucide-react';
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { toast } from "sonner";
 
 interface QrCodeScannerProps {
   onScan: (data: string) => void;
@@ -12,13 +13,41 @@ interface QrCodeScannerProps {
 
 const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScan, onClose }) => {
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
+
+  // Request camera permission on component mount
+  useEffect(() => {
+    const requestCameraPermission = async () => {
+      try {
+        setIsLoading(true);
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { facingMode } 
+        });
+        
+        // If we got a stream, we have permission
+        setHasPermission(true);
+        // Clean up stream tracks
+        stream.getTracks().forEach(track => track.stop());
+        setError(null);
+      } catch (err) {
+        console.error("Camera permission error:", err);
+        setHasPermission(false);
+        setError('Camera access denied. Please grant camera permissions to scan QR codes.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    requestCameraPermission();
+  }, []);
 
   const handleScan = (result: any) => {
     if (result) {
       const text = result?.text;
       if (text) {
+        toast.success("QR code detected!");
         onScan(text);
       }
     }
@@ -27,12 +56,43 @@ const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScan, onClose }) => {
   // Handle camera toggle while resetting any errors
   const toggleCamera = (mode: 'environment' | 'user') => {
     setFacingMode(mode);
-    setError(null); // Clear any previous errors when changing camera
+    setError(null);
+    // Re-request permission with new camera
+    setIsLoading(true);
+    navigator.mediaDevices.getUserMedia({ 
+      video: { facingMode: mode } 
+    })
+    .then(stream => {
+      setHasPermission(true);
+      stream.getTracks().forEach(track => track.stop());
+    })
+    .catch(err => {
+      console.error("Camera toggle error:", err);
+      setError(`Could not access ${mode === 'environment' ? 'back' : 'front'} camera.`);
+      setHasPermission(false);
+    })
+    .finally(() => {
+      setIsLoading(false);
+    });
   };
 
-  // Create a separate error handler function
-  const handleErrorManually = () => {
-    setError('Error accessing camera. Please ensure you have granted camera permissions.');
+  const retryPermission = async () => {
+    setError(null);
+    setIsLoading(true);
+    
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode } 
+      });
+      setHasPermission(true);
+      stream.getTracks().forEach(track => track.stop());
+    } catch (err) {
+      console.error("Retry permission error:", err);
+      setHasPermission(false);
+      setError('Camera access still denied. Please check browser settings and try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -58,18 +118,33 @@ const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScan, onClose }) => {
         </ToggleGroup>
       </div>
       
-      {error ? (
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center p-8 bg-muted/20 rounded-lg aspect-square">
+          <RefreshCw className="h-8 w-8 animate-spin text-primary/70 mb-4" />
+          <p className="text-sm text-center">Accessing camera...</p>
+        </div>
+      ) : error || hasPermission === false ? (
         <div className="p-4 bg-destructive/10 rounded-md mb-4">
-          <p className="text-sm text-destructive">{error}</p>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="mt-2"
-            onClick={() => setError(null)}
-          >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Try Again
-          </Button>
+          <div className="flex items-center mb-2">
+            <CameraOff className="h-5 w-5 text-destructive mr-2" />
+            <p className="text-sm font-medium text-destructive">Camera Access Error</p>
+          </div>
+          <p className="text-sm text-destructive mb-3">{error || 'Unable to access camera. Please check your permissions.'}</p>
+          <div className="space-y-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="w-full"
+              onClick={retryPermission}
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Try Again
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              Make sure to allow camera access in your browser settings. 
+              You may need to click the camera icon in your address bar.
+            </p>
+          </div>
         </div>
       ) : (
         <div className="relative bg-black rounded-md overflow-hidden aspect-square max-w-sm mx-auto">
@@ -86,7 +161,7 @@ const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScan, onClose }) => {
               height: '100%'
             }}
             // We're not using the onError prop since it's causing TypeScript errors
-            // Instead, we'll handle errors through React error boundaries or component state
+            // Instead, we're handling errors through our useEffect and state management
           />
           <div className="absolute inset-0 border-4 border-primary/50 rounded-md pointer-events-none"></div>
           <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-red-500/70 animate-pulse"></div>
