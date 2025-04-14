@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { calculateDocumentHash } from '@/utils/web3Utils';
 
 interface CertificateUploaderProps {
-  onVerify: (documentHash: string) => void;
+  onVerify: (documentHash: string, documentData?: any) => void;
   isVerifying: boolean;
 }
 
@@ -62,9 +62,35 @@ const CertificateUploader: React.FC<CertificateUploaderProps> = ({ onVerify, isV
       // Calculate document hash
       const documentHash = await calculateDocumentHash(file);
       
-      // Call the onVerify callback with the hash
+      // Create base64 representation of file for QR code
+      let documentData: any = null;
+      
+      // Only include file data for images (PDFs would be too large)
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        documentData = await new Promise((resolve) => {
+          reader.onload = (e) => {
+            const result = e.target?.result as string;
+            resolve({
+              fileType: file.type,
+              fileName: file.name,
+              data: result,
+            });
+          };
+          reader.readAsDataURL(file);
+        });
+      } else {
+        // For PDFs just store metadata
+        documentData = {
+          fileType: file.type,
+          fileName: file.name,
+          size: file.size,
+        };
+      }
+      
+      // Call the onVerify callback with the hash and document data
       if (documentHash) {
-        onVerify(documentHash);
+        onVerify(documentHash, documentData);
       }
     } catch (error) {
       console.error('Error processing file:', error);

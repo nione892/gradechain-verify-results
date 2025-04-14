@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -55,6 +54,7 @@ const CertificateUploadForm: React.FC = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [certificateHash, setCertificateHash] = useState<string | null>(null);
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
+  const [certificateQrData, setCertificateQrData] = useState<string | null>(null);
   const { toast } = useToast();
   const { isRealBlockchainMode } = React.useContext(BlockchainModeContext);
   
@@ -74,6 +74,7 @@ const CertificateUploadForm: React.FC = () => {
     setIsUploading(true);
     setCertificateHash(null);
     setQrCodeUrl(null);
+    setCertificateQrData(null);
     
     try {
       // Calculate certificate hash
@@ -94,6 +95,19 @@ const CertificateUploadForm: React.FC = () => {
         const baseUrl = window.location.origin;
         const verificationUrl = `${baseUrl}/?verify=${hash}`;
         setQrCodeUrl(verificationUrl);
+        
+        // Create enhanced QR code with embedded certificate data
+        const qrData = {
+          verify: hash,
+          documentData: {
+            fileType: "certificate/academic",
+            fileName: `${data.studentName} - ${data.courseName} Certificate`,
+            // Create simple text representation of certificate
+            data: `data:text/plain,${data.studentName}\n${data.courseName}\nGrade: ${data.grade}\nIssued: ${data.issueDate}`,
+          }
+        };
+        
+        setCertificateQrData(JSON.stringify(qrData));
         
         toast({
           title: "Certificate Uploaded",
@@ -122,7 +136,7 @@ const CertificateUploadForm: React.FC = () => {
   };
 
   const downloadQrCode = () => {
-    if (!qrCodeUrl) return;
+    if (!certificateQrData) return;
     
     const svg = document.getElementById('certificate-qr-code');
     if (!svg) return;
@@ -278,7 +292,7 @@ const CertificateUploadForm: React.FC = () => {
         </CardContent>
       </Card>
 
-      {certificateHash && qrCodeUrl && (
+      {certificateHash && certificateQrData && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
@@ -295,7 +309,7 @@ const CertificateUploadForm: React.FC = () => {
             <div className="bg-white p-4 rounded shadow-sm max-w-[200px]">
               <QRCodeSVG
                 id="certificate-qr-code"
-                value={qrCodeUrl}
+                value={certificateQrData}
                 size={200}
                 level="H"
                 includeMargin={true}
@@ -331,7 +345,7 @@ const CertificateUploadForm: React.FC = () => {
                   Download QR Code
                 </Button>
                 <p className="text-xs text-muted-foreground mt-2">
-                  This QR code can be scanned to verify the certificate's authenticity.
+                  This QR code contains certificate data and can be scanned to verify authenticity.
                 </p>
               </div>
             </div>

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Search, CircleAlert, ArrowRight, ShieldCheck, FileDigit, AlertTriangle, FileUp, Upload, QrCode } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -81,7 +80,7 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
     }
   };
 
-  const handleDocumentVerify = async (documentHash: string) => {
+  const handleDocumentVerify = async (documentHash: string, documentData?: any) => {
     if (!documentHash) {
       return;
     }
@@ -123,55 +122,100 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
   const handleQrCodeScan = async (qrData: string) => {
     setShowQrScanner(false);
     
-    // Check if the QR data is a URL with verification hash
-    const verificationHash = processVerificationUrl(qrData);
-    
-    if (verificationHash) {
-      // Set the result ID and verify it
-      setResultId(verificationHash);
-      setActiveTab('id');
+    try {
+      // Try to parse the QR data as JSON (for enhanced QR codes with document data)
+      const parsedData = JSON.parse(qrData);
       
-      // Trigger verification process
-      setIsSearching(true);
-      
-      try {
-        const verificationResult = await verifyDocumentHash(verificationHash);
+      if (parsedData.verify) {
+        // Set the result ID and verify it
+        setResultId(parsedData.verify);
+        setActiveTab('id');
         
-        if (verificationResult.isVerified) {
-          toast({
-            title: "Certificate Verified",
-            description: isRealBlockchainMode 
-              ? "The certificate has been verified on the blockchain" 
-              : "The certificate has been verified in demo mode",
-          });
-          if (verificationResult.resultId) {
-            onResultFound(verificationResult.resultId);
+        // Trigger verification process
+        setIsSearching(true);
+        
+        try {
+          const verificationResult = await verifyDocumentHash(parsedData.verify);
+          
+          if (verificationResult.isVerified) {
+            toast({
+              title: "Certificate Verified",
+              description: isRealBlockchainMode 
+                ? "The certificate has been verified on the blockchain" 
+                : "The certificate has been verified in demo mode",
+            });
+            if (verificationResult.resultId) {
+              onResultFound(verificationResult.resultId);
+            }
+          } else {
+            toast({
+              variant: "destructive",
+              title: "Verification Failed",
+              description: verificationResult.message || "This certificate could not be verified",
+            });
           }
-        } else {
+        } catch (error) {
+          console.error("QR verification error:", error);
           toast({
             variant: "destructive",
-            title: "Verification Failed",
-            description: verificationResult.message || "This certificate could not be verified",
+            title: "Verification Error",
+            description: "An error occurred during QR verification. Please try again.",
           });
+        } finally {
+          setIsSearching(false);
         }
-      } catch (error) {
-        console.error("QR verification error:", error);
-        toast({
-          variant: "destructive",
-          title: "Verification Error",
-          description: "An error occurred during QR verification. Please try again.",
-        });
-      } finally {
-        setIsSearching(false);
       }
-    } else {
-      // Try to use the QR data directly as a result ID
-      setResultId(qrData);
-      setActiveTab('id');
+    } catch (e) {
+      // Not JSON, continue with old behavior for URL or direct hash
+      const verificationHash = processVerificationUrl(qrData);
       
-      // Manually submit the form
-      const verifyEvent = new Event('submit', { cancelable: true });
-      document.getElementById('verification-form')?.dispatchEvent(verifyEvent);
+      if (verificationHash) {
+        // Set the result ID and verify it
+        setResultId(verificationHash);
+        setActiveTab('id');
+        
+        // Trigger verification process
+        setIsSearching(true);
+        
+        try {
+          const verificationResult = await verifyDocumentHash(verificationHash);
+          
+          if (verificationResult.isVerified) {
+            toast({
+              title: "Certificate Verified",
+              description: isRealBlockchainMode 
+                ? "The certificate has been verified on the blockchain" 
+                : "The certificate has been verified in demo mode",
+            });
+            if (verificationResult.resultId) {
+              onResultFound(verificationResult.resultId);
+            }
+          } else {
+            toast({
+              variant: "destructive",
+              title: "Verification Failed",
+              description: verificationResult.message || "This certificate could not be verified",
+            });
+          }
+        } catch (error) {
+          console.error("QR verification error:", error);
+          toast({
+            variant: "destructive",
+            title: "Verification Error",
+            description: "An error occurred during QR verification. Please try again.",
+          });
+        } finally {
+          setIsSearching(false);
+        }
+      } else {
+        // Try to use the QR data directly as a result ID
+        setResultId(qrData);
+        setActiveTab('id');
+        
+        // Manually submit the form
+        const verifyEvent = new Event('submit', { cancelable: true });
+        document.getElementById('verification-form')?.dispatchEvent(verifyEvent);
+      }
     }
   };
 

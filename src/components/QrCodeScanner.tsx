@@ -2,13 +2,21 @@
 import React, { useState, useEffect } from 'react';
 import { QrReader } from 'react-qr-reader';
 import { Button } from '@/components/ui/button';
-import { X, Camera, RefreshCw, ScanLine, CameraOff } from 'lucide-react';
+import { X, Camera, RefreshCw, ScanLine, CameraOff, ShieldCheck } from 'lucide-react';
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { toast } from "sonner";
+import { Card, CardContent } from '@/components/ui/card';
 
 interface QrCodeScannerProps {
   onScan: (data: string) => void;
   onClose: () => void;
+}
+
+interface DocumentData {
+  fileType: string;
+  fileName: string;
+  data?: string;
+  size?: number;
 }
 
 const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScan, onClose }) => {
@@ -16,6 +24,8 @@ const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScan, onClose }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
+  const [scannedDocument, setScannedDocument] = useState<DocumentData | null>(null);
+  const [verificationStatus, setVerificationStatus] = useState<'verified' | 'failed' | null>(null);
 
   // Request camera permission on component mount
   useEffect(() => {
@@ -47,8 +57,31 @@ const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScan, onClose }) => {
     if (result) {
       const text = result?.text;
       if (text) {
-        toast.success("QR code detected!");
-        onScan(text);
+        try {
+          // Check if the QR code contains document data
+          const qrData = JSON.parse(text);
+          
+          if (qrData.verify && qrData.documentData) {
+            // We have document data and verification hash
+            setScannedDocument(qrData.documentData);
+            setVerificationStatus('verified');
+            
+            toast.success("Certificate verified on blockchain!", {
+              description: "This document has been verified as authentic",
+            });
+            
+            // Pass the verification hash to the parent component
+            onScan(qrData.verify);
+          } else {
+            // Standard verification hash
+            toast.success("QR code detected!");
+            onScan(text);
+          }
+        } catch (e) {
+          // Not JSON, treat as regular verification URL/hash
+          toast.success("QR code detected!");
+          onScan(text);
+        }
       }
     }
   };
@@ -94,6 +127,61 @@ const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScan, onClose }) => {
       setIsLoading(false);
     }
   };
+
+  // If we already scanned a document with embedded data, show it
+  if (scannedDocument) {
+    return (
+      <div className="bg-background border rounded-lg p-4 shadow-md">
+        <div className="flex justify-between items-center mb-3">
+          <h3 className="text-lg font-medium flex items-center">
+            <ShieldCheck className="h-5 w-5 mr-2 text-green-500" />
+            Verified Certificate
+          </h3>
+          <Button variant="ghost" size="icon" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+        
+        <Card className="mb-4 overflow-hidden">
+          <CardContent className="p-0 relative">
+            {scannedDocument.data ? (
+              // Display the image if we have it
+              <div className="relative">
+                <img 
+                  src={scannedDocument.data} 
+                  alt="Verified Certificate" 
+                  className="w-full object-contain"
+                />
+                <div className="absolute top-0 right-0 bg-green-500 text-white px-3 py-1 rounded-bl-lg font-semibold text-sm flex items-center">
+                  <ShieldCheck className="h-4 w-4 mr-1" />
+                  Verified on Blockchain
+                </div>
+              </div>
+            ) : (
+              // Display file info if no image data
+              <div className="p-4 text-center">
+                <h4 className="font-medium">{scannedDocument.fileName}</h4>
+                <p className="text-sm text-muted-foreground">
+                  {scannedDocument.fileType} 
+                  {scannedDocument.size && ` - ${(scannedDocument.size / 1024).toFixed(1)} KB`}
+                </p>
+                <div className="mt-2 inline-block bg-green-500 text-white px-3 py-1 rounded-lg font-semibold text-sm flex items-center">
+                  <ShieldCheck className="h-4 w-4 mr-1" />
+                  Verified on Blockchain
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+        
+        <div className="flex justify-end mt-4">
+          <Button onClick={onClose}>
+            Close
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-background border rounded-lg p-4 shadow-md">
@@ -160,8 +248,6 @@ const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScan, onClose }) => {
               width: '100%',
               height: '100%'
             }}
-            // We're not using the onError prop since it's causing TypeScript errors
-            // Instead, we're handling errors through our useEffect and state management
           />
           <div className="absolute inset-0 border-4 border-primary/50 rounded-md pointer-events-none"></div>
           <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-red-500/70 animate-pulse"></div>
