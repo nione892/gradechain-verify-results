@@ -1,13 +1,15 @@
 
 import React, { useState } from 'react';
-import { Search, CircleAlert, ArrowRight, ShieldCheck, FileDigit, AlertTriangle } from 'lucide-react';
+import { Search, CircleAlert, ArrowRight, ShieldCheck, FileDigit, AlertTriangle, FileUp, Upload, QrCode } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
 import { getResultById } from '@/utils/demoData';
-import { verifyResultHash } from '@/utils/web3Utils';
+import { verifyResultHash, verifyDocumentHash } from '@/utils/web3Utils';
 import { motion } from 'framer-motion';
+import CertificateUploader from '@/components/CertificateUploader';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface VerificationFormProps {
   onResultFound: (resultId: string) => void;
@@ -17,6 +19,7 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
   const [resultId, setResultId] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState('');
+  const [activeTab, setActiveTab] = useState<'id' | 'document'>('id');
   const { toast } = useToast();
 
   const handleVerify = async (event: React.FormEvent) => {
@@ -72,6 +75,43 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
     }
   };
 
+  const handleDocumentVerify = async (documentHash: string) => {
+    if (!documentHash) {
+      return;
+    }
+
+    setIsSearching(true);
+    
+    try {
+      const verificationResult = await verifyDocumentHash(documentHash);
+      
+      if (verificationResult.isVerified) {
+        toast({
+          title: "Certificate Verified",
+          description: "The certificate has been verified on the blockchain",
+        });
+        if (verificationResult.resultId) {
+          onResultFound(verificationResult.resultId);
+        }
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Verification Failed",
+          description: verificationResult.message || "This certificate could not be verified on the blockchain",
+        });
+      }
+    } catch (error) {
+      console.error("Document verification error:", error);
+      toast({
+        variant: "destructive",
+        title: "Verification Error",
+        description: "An error occurred during certificate verification. Please try again.",
+      });
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
   return (
     <motion.div 
       id="verification-form"
@@ -106,89 +146,120 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
           >
             <h2 className="text-2xl font-bold mb-4 text-center bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">Verify Academic Results</h2>
             <p className="text-muted-foreground mb-6 text-center">
-              Enter your result ID or verification hash to verify your academic results on the blockchain
+              Verify your academic results or certificates on the blockchain
             </p>
           </motion.div>
           
-          <form onSubmit={handleVerify} className="space-y-4">
-            <motion.div 
-              className="flex flex-col md:flex-row gap-2 relative"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3, duration: 0.4 }}
-            >
-              <div className="flex-grow relative">
-                <Input
-                  placeholder="Enter Result ID or Verification Hash"
-                  value={resultId}
-                  onChange={(e) => setResultId(e.target.value)}
-                  className="w-full border-primary/20 focus:border-primary/50 pr-10 pl-4 py-6"
-                />
-                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
-                  <FileDigit className="h-5 w-5" />
-                </div>
-              </div>
-              <Button 
-                type="submit" 
-                disabled={isSearching} 
-                className="min-w-[140px] relative overflow-hidden group py-6"
-              >
-                <span className="relative z-10 flex items-center gap-2">
-                  {isSearching ? (
-                    <>
-                      <motion.div
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                      >
-                        <Search className="h-4 w-4" />
-                      </motion.div>
-                      <span>Verifying...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Search className="h-4 w-4" />
-                      <span>Verify Result</span>
-                      <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                    </>
-                  )}
-                </span>
-                {!isSearching && (
+          <Tabs defaultValue="id" className="mb-4" onValueChange={(value) => setActiveTab(value as 'id' | 'document')}>
+            <TabsList className="grid w-full grid-cols-2 mb-4">
+              <TabsTrigger value="id" className="flex items-center gap-2">
+                <FileDigit className="h-4 w-4" />
+                Verify by ID
+              </TabsTrigger>
+              <TabsTrigger value="document" className="flex items-center gap-2">
+                <FileUp className="h-4 w-4" />
+                Verify Certificate
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="id">
+              <form onSubmit={handleVerify} className="space-y-4">
+                <motion.div 
+                  className="flex flex-col md:flex-row gap-2 relative"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3, duration: 0.4 }}
+                >
+                  <div className="flex-grow relative">
+                    <Input
+                      placeholder="Enter Result ID or Verification Hash"
+                      value={resultId}
+                      onChange={(e) => setResultId(e.target.value)}
+                      className="w-full border-primary/20 focus:border-primary/50 pr-10 pl-4 py-6"
+                    />
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
+                      <FileDigit className="h-5 w-5" />
+                    </div>
+                  </div>
+                  <Button 
+                    type="submit" 
+                    disabled={isSearching} 
+                    className="min-w-[140px] relative overflow-hidden group py-6"
+                  >
+                    <span className="relative z-10 flex items-center gap-2">
+                      {isSearching ? (
+                        <>
+                          <motion.div
+                            animate={{ rotate: 360 }}
+                            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                          >
+                            <Search className="h-4 w-4" />
+                          </motion.div>
+                          <span>Verifying...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Search className="h-4 w-4" />
+                          <span>Verify Result</span>
+                          <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                        </>
+                      )}
+                    </span>
+                    {!isSearching && (
+                      <motion.div 
+                        className="absolute inset-0 bg-primary opacity-0 group-hover:opacity-10"
+                        initial={false}
+                        animate={{ scale: isSearching ? 1 : 0.6 }}
+                        whileHover={{ scale: 1 }}
+                      />
+                    )}
+                  </Button>
+                </motion.div>
+                
+                {searchError && (
                   <motion.div 
-                    className="absolute inset-0 bg-primary opacity-0 group-hover:opacity-10"
-                    initial={false}
-                    animate={{ scale: isSearching ? 1 : 0.6 }}
-                    whileHover={{ scale: 1 }}
-                  />
+                    className="text-destructive flex items-center gap-2 text-sm p-3 bg-destructive/10 rounded-md"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+                    <span>{searchError}</span>
+                  </motion.div>
                 )}
-              </Button>
-            </motion.div>
+                
+                <motion.div 
+                  className="text-xs text-muted-foreground pt-2 bg-muted/50 p-3 rounded-md"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4, duration: 0.4 }}
+                >
+                  <p className="font-medium mb-1">Example IDs for testing:</p>
+                  <ul className="list-disc list-inside space-y-1 pl-2">
+                    <li className="flex items-center gap-1"><span className="text-green-500">✓</span> STU20210001-SEM2-123 (will verify)</li>
+                    <li className="flex items-center gap-1"><span className="text-red-500">✗</span> STU20210002-SEM1-456 (won't verify)</li>
+                    <li className="flex items-center gap-1"><span className="text-red-500">✗</span> STU20210003-SEM3-789 (won't verify)</li>
+                  </ul>
+                </motion.div>
+              </form>
+            </TabsContent>
             
-            {searchError && (
-              <motion.div 
-                className="text-destructive flex items-center gap-2 text-sm p-3 bg-destructive/10 rounded-md"
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                transition={{ duration: 0.3 }}
-              >
-                <AlertTriangle className="h-4 w-4 flex-shrink-0" />
-                <span>{searchError}</span>
-              </motion.div>
-            )}
-            
-            <motion.div 
-              className="text-xs text-muted-foreground pt-2 bg-muted/50 p-3 rounded-md"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4, duration: 0.4 }}
-            >
-              <p className="font-medium mb-1">Example IDs for testing:</p>
-              <ul className="list-disc list-inside space-y-1 pl-2">
-                <li className="flex items-center gap-1"><span className="text-green-500">✓</span> STU20210001-SEM2-123 (will verify)</li>
-                <li className="flex items-center gap-1"><span className="text-red-500">✗</span> STU20210002-SEM1-456 (won't verify)</li>
-                <li className="flex items-center gap-1"><span className="text-red-500">✗</span> STU20210003-SEM3-789 (won't verify)</li>
-              </ul>
-            </motion.div>
-          </form>
+            <TabsContent value="document">
+              <CertificateUploader onVerify={handleDocumentVerify} isVerifying={isSearching} />
+            </TabsContent>
+          </Tabs>
+          
+          <motion.div 
+            className="mt-4 border-t pt-4 border-primary/10 text-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+          >
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground mb-2">
+              <QrCode className="h-4 w-4" />
+              <span>Scan a QR code from a certificate to verify</span>
+            </div>
+          </motion.div>
         </CardContent>
       </Card>
     </motion.div>

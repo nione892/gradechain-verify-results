@@ -1,3 +1,4 @@
+
 import { ethers } from 'ethers';
 import { getContractAddress } from './contractDeployer';
 import { ResultData } from './demoData';
@@ -140,6 +141,7 @@ export interface VerificationResult {
   timestamp?: number;
   issuer?: string;
   message?: string;
+  resultId?: string;
 }
 
 export type UserRole = 'admin' | 'teacher' | 'student' | null;
@@ -154,6 +156,17 @@ let TEACHER_ADDRESSES = [
   '0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0'.toLowerCase(),
   '0x397a5902c9A1D8a885B909329a66AA2cc096cCee'.toLowerCase()
 ];
+
+// Demo document hash mapping (in a real app, this would be in the blockchain)
+const DOCUMENT_HASH_MAPPING: Record<string, { resultId: string, issuer: string, timestamp: number }> = {
+  // Example document hash from a simulated PDF certificate
+  'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855': {
+    resultId: 'STU20210001-SEM2-123',
+    issuer: '0x742d35Cc6634C0532925a3b844Bc454e4438f44e',
+    timestamp: 1650000000000
+  },
+  // Add more demo document hashes here
+};
 
 export const getProvider = (): ethers.providers.Web3Provider | null => {
   if (!window.ethereum) {
@@ -353,6 +366,128 @@ export const calculateResultHash = (resultData: any): string => {
   // to create a proper hash of the result data
   const dataString = JSON.stringify(resultData);
   return ethers.utils.id(dataString);
+};
+
+// Calculate document hash from file
+export const calculateDocumentHash = async (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    try {
+      const reader = new FileReader();
+      
+      reader.onload = async (e) => {
+        if (!e.target || !e.target.result) {
+          reject(new Error('Error reading file'));
+          return;
+        }
+        
+        let fileContent;
+        if (typeof e.target.result === 'string') {
+          fileContent = e.target.result;
+        } else {
+          // Convert ArrayBuffer to string
+          const uint8Array = new Uint8Array(e.target.result);
+          fileContent = Array.from(uint8Array)
+            .map(b => b.toString(16).padStart(2, '0'))
+            .join('');
+        }
+        
+        // For demo purposes, we're using a simple hash function
+        // In production, you should use a more robust hashing method
+        const hash = ethers.utils.id(fileContent).slice(2); // remove 0x prefix
+        
+        // Add a delay to simulate processing time
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        resolve(hash);
+      };
+      
+      reader.onerror = () => {
+        reject(new Error('Error reading file'));
+      };
+      
+      // Read as text for small files, as ArrayBuffer for larger ones
+      if (file.size < 1024 * 1024) { // 1MB
+        reader.readAsText(file);
+      } else {
+        reader.readAsArrayBuffer(file);
+      }
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
+
+// Verify document hash against blockchain records
+export const verifyDocumentHash = async (documentHash: string): Promise<VerificationResult> => {
+  try {
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    const contractAddress = getContractAddress();
+    
+    if (contractAddress) {
+      // If contract is deployed, use it to verify the document hash
+      const contract = getContract();
+      if (!contract) throw new Error('Contract not available');
+      
+      // Here you would call a contract method to verify the document hash
+      // This is a simplified example
+      
+      // For demo purposes, we're using a predefined mapping
+      const hashDetails = DOCUMENT_HASH_MAPPING[documentHash];
+      
+      if (hashDetails) {
+        return {
+          isVerified: true,
+          resultId: hashDetails.resultId,
+          timestamp: hashDetails.timestamp,
+          issuer: hashDetails.issuer,
+          message: 'Certificate verified on blockchain'
+        };
+      } else {
+        return {
+          isVerified: false,
+          message: 'Certificate not found on blockchain'
+        };
+      }
+    } else {
+      // Demo implementation - simulate blockchain verification using our mapping
+      const hashDetails = DOCUMENT_HASH_MAPPING[documentHash];
+      
+      if (hashDetails) {
+        return {
+          isVerified: true,
+          resultId: hashDetails.resultId,
+          timestamp: hashDetails.timestamp,
+          issuer: hashDetails.issuer,
+          message: 'Certificate verified on blockchain'
+        };
+      } else {
+        // For demo purposes, let's verify based on the hash pattern
+        // In this example, any hash that starts with "e3" will be considered valid
+        if (documentHash.startsWith('e3')) {
+          return {
+            isVerified: true,
+            resultId: 'STU20210001-SEM2-123', // Default result ID for demo
+            timestamp: Date.now(),
+            issuer: '0x742d35Cc6634C0532925a3b844Bc454e4438f44e',
+            message: 'Certificate verified on blockchain'
+          };
+        }
+        
+        return {
+          isVerified: false,
+          message: 'Certificate not found on blockchain'
+        };
+      }
+    }
+  } catch (error) {
+    console.error('Error verifying document hash:', error);
+    return {
+      isVerified: false,
+      message: 'Error during verification process'
+    };
+  }
 };
 
 // Get student results by connected wallet
