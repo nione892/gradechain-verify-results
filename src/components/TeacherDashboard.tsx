@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { uploadResult, calculateResultHash, calculateDocumentHash } from '@/utils/web3Utils';
@@ -22,6 +21,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { BlockchainModeContext } from './Header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { QRCodeSVG } from 'qrcode.react';
+import { Label } from '@/components/ui/label';
 
 const formSchema = z.object({
   studentId: z.string().min(3, {

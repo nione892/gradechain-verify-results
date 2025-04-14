@@ -24,13 +24,11 @@ const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScan, onClose }) => {
     }
   };
 
-  const handleError = (err: any) => {
-    console.error('QR Code Scanner Error:', err);
-    setError('Error accessing camera. Please ensure you have granted camera permissions.');
-  };
-
+  // Instead of using onError prop, we'll set up a try-catch in surrounding code
+  // and use state to manage error messages
   const toggleCamera = (mode: 'environment' | 'user') => {
     setFacingMode(mode);
+    setError(null); // Clear any previous errors when changing camera
   };
 
   return (
@@ -74,7 +72,6 @@ const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScan, onClose }) => {
           <QrReader
             constraints={{ facingMode }}
             onResult={handleScan}
-            onError={handleError}
             scanDelay={500}
             className="w-full"
             videoContainerStyle={{ padding: 0 }}
@@ -83,6 +80,12 @@ const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScan, onClose }) => {
               objectFit: 'cover',
               width: '100%',
               height: '100%'
+            }}
+            // React errors would be caught by React's error boundaries
+            // and we catch specific camera errors in our component logic
+            onError={(err) => {
+              console.error('QR Code Scanner Error:', err);
+              setError('Error accessing camera. Please ensure you have granted camera permissions.');
             }}
           />
           <div className="absolute inset-0 border-4 border-primary/50 rounded-md pointer-events-none"></div>
