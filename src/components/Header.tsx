@@ -1,14 +1,25 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Blocks, LayoutDashboard, Search, GraduationCap } from 'lucide-react';
+import { Blocks, LayoutDashboard, Search, GraduationCap, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ConnectWallet from './ConnectWallet';
 import { getUserRole, UserRole } from '@/utils/web3Utils';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
+
+// Create a context for blockchain mode
+export const BlockchainModeContext = React.createContext({
+  isRealBlockchainMode: false,
+  toggleBlockchainMode: () => {}
+});
 
 const Header: React.FC = () => {
   const [userRole, setUserRole] = useState<UserRole>(null);
+  const [isRealBlockchainMode, setIsRealBlockchainMode] = useState(false);
   const location = useLocation();
+  const { toast } = useToast();
 
   // Update user role when wallet changes
   useEffect(() => {
@@ -46,68 +57,91 @@ const Header: React.FC = () => {
     };
   }, []);
 
-  return (
-    <header className="border-b border-border">
-      <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-        <Link to="/" className="flex items-center space-x-2">
-          <Blocks className="h-8 w-8 text-primary" />
-          <div>
-            <h1 className="text-xl font-bold text-primary">GradeChain</h1>
-            <p className="text-xs text-muted-foreground">Blockchain Result Verification</p>
-          </div>
-        </Link>
+  const toggleBlockchainMode = () => {
+    setIsRealBlockchainMode(prev => !prev);
+    toast({
+      title: isRealBlockchainMode ? "Demo Mode Activated" : "Real Blockchain Mode Activated",
+      description: isRealBlockchainMode 
+        ? "Now using local verification without blockchain transactions" 
+        : "Now using real blockchain verification with Ethereum Sepolia testnet",
+    });
+  };
 
-        <div className="flex items-center space-x-2">
-          {userRole === 'admin' && (
-            <Link to="/admin">
-              <Button 
-                variant={location.pathname === '/admin' ? 'default' : 'ghost'}
-                className="flex items-center gap-2"
-              >
-                <LayoutDashboard className="h-4 w-4" />
-                Admin Dashboard
-              </Button>
-            </Link>
-          )}
-          
-          {userRole === 'teacher' && (
-            <Link to="/teacher">
-              <Button 
-                variant={location.pathname === '/teacher' ? 'default' : 'ghost'}
-                className="flex items-center gap-2"
-              >
-                <LayoutDashboard className="h-4 w-4" />
-                Teacher Dashboard
-              </Button>
-            </Link>
-          )}
-          
-          {userRole === 'student' && (
-            <Link to="/student">
-              <Button 
-                variant={location.pathname === '/student' ? 'default' : 'ghost'}
-                className="flex items-center gap-2"
-              >
-                <GraduationCap className="h-4 w-4" />
-                My Results
-              </Button>
-            </Link>
-          )}
-          
-          <Link to="/">
-            <Button 
-              variant={location.pathname === '/' ? 'default' : 'ghost'}
-              className="flex items-center gap-2"
-            >
-              <Search className="h-4 w-4" />
-              Verify Results
-            </Button>
+  return (
+    <BlockchainModeContext.Provider value={{ isRealBlockchainMode, toggleBlockchainMode }}>
+      <header className="border-b border-border">
+        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+          <Link to="/" className="flex items-center space-x-2">
+            <Blocks className="h-8 w-8 text-primary" />
+            <div>
+              <h1 className="text-xl font-bold text-primary">GradeChain</h1>
+              <p className="text-xs text-muted-foreground">Blockchain Result Verification</p>
+            </div>
           </Link>
-          
-          <ConnectWallet />
+
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center mr-4 bg-muted/50 p-2 rounded-lg">
+              <Label htmlFor="blockchain-mode" className={`text-xs mr-2 ${isRealBlockchainMode ? 'text-primary' : 'text-muted-foreground'}`}>
+                {isRealBlockchainMode ? 'Real Blockchain' : 'Demo Mode'}
+              </Label>
+              <Switch
+                id="blockchain-mode"
+                checked={isRealBlockchainMode}
+                onCheckedChange={toggleBlockchainMode}
+              />
+            </div>
+            
+            {userRole === 'admin' && (
+              <Link to="/admin">
+                <Button 
+                  variant={location.pathname === '/admin' ? 'default' : 'ghost'}
+                  className="flex items-center gap-2"
+                >
+                  <LayoutDashboard className="h-4 w-4" />
+                  Admin Dashboard
+                </Button>
+              </Link>
+            )}
+            
+            {userRole === 'teacher' && (
+              <Link to="/teacher">
+                <Button 
+                  variant={location.pathname === '/teacher' ? 'default' : 'ghost'}
+                  className="flex items-center gap-2"
+                >
+                  <LayoutDashboard className="h-4 w-4" />
+                  Teacher Dashboard
+                </Button>
+              </Link>
+            )}
+            
+            {userRole === 'student' && (
+              <Link to="/student">
+                <Button 
+                  variant={location.pathname === '/student' ? 'default' : 'ghost'}
+                  className="flex items-center gap-2"
+                >
+                  <GraduationCap className="h-4 w-4" />
+                  My Results
+                </Button>
+              </Link>
+            )}
+            
+            <Link to="/">
+              <Button 
+                variant={location.pathname === '/' ? 'default' : 'ghost'}
+                className="flex items-center gap-2"
+              >
+                <Search className="h-4 w-4" />
+                Verify Results
+              </Button>
+            </Link>
+            
+            <ConnectWallet />
+          </div>
         </div>
-      </div>
-    </header>
+      </header>
+    </BlockchainModeContext.Provider>
   );
 };
 

@@ -1,4 +1,3 @@
-
 import { ethers } from 'ethers';
 import { getContractAddress } from './contractDeployer';
 import { ResultData } from './demoData';
@@ -423,10 +422,13 @@ export const verifyDocumentHash = async (documentHash: string): Promise<Verifica
     // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, 2000));
     
+    // Check if we're in real blockchain mode by checking for window.ethereum
+    const isRealBlockchainMode = !!window.ethereum;
+    
     const contractAddress = getContractAddress();
     
-    if (contractAddress) {
-      // If contract is deployed, use it to verify the document hash
+    if (contractAddress && isRealBlockchainMode) {
+      // If contract is deployed and we're in real mode, use it to verify the document hash
       const contract = getContract();
       if (!contract) throw new Error('Contract not available');
       
@@ -487,6 +489,19 @@ export const verifyDocumentHash = async (documentHash: string): Promise<Verifica
       isVerified: false,
       message: 'Error during verification process'
     };
+  }
+};
+
+// Process a verification URL
+export const processVerificationUrl = (url: string): string | null => {
+  try {
+    // Extract the verification hash from the URL
+    // Expected format: http://domain.com/?verify=hash
+    const urlObj = new URL(url);
+    return urlObj.searchParams.get('verify');
+  } catch (error) {
+    console.error('Error processing verification URL:', error);
+    return null;
   }
 };
 
