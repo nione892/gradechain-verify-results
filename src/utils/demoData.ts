@@ -1,4 +1,3 @@
-
 export interface Student {
   id: string;
   name: string;
@@ -30,6 +29,7 @@ export interface ResultData {
   gpa: number;
   verificationHash: string;
   ipfsHash?: string;
+  resultImageUrl?: string;
 }
 
 export const demoResults: Record<string, ResultData> = {
@@ -189,6 +189,44 @@ export const demoResults: Record<string, ResultData> = {
     gpa: 3.8,
     verificationHash: '0x1c5ea36004851c664b3e3b0dae9d71b4e0069fa7a8d24c6f0d0748f5c4c947e5',
     ipfsHash: 'QmXRcTnYC2CchfYm8yVA6KLB7QmkUQDXpUdSGRMVZuRoRx'
+  },
+  'KSOU-MBA-142071': {
+    id: 'KSOU-MBA-142071',
+    student: {
+      id: 'KSU20150005',
+      name: 'AMIYA KUMAR NAYAK',
+      roll: '142071EMBALFN005',
+      program: 'Executive MBA in Finance'
+    },
+    semester: '1st Semester',
+    academicYear: '2015',
+    issueDate: '2015-07-13',
+    courses: [
+      { id: 'MBA101', code: 'MBA101', name: 'Principles of Management', credits: 4 },
+      { id: 'MBA102', code: 'MBA102', name: 'Managerial Economics', credits: 4 },
+      { id: 'MBA103', code: 'MBA103', name: 'Managerial Accounting', credits: 4 },
+      { id: 'MBA104', code: 'MBA104', name: 'Financial Management', credits: 4 },
+      { id: 'MBA105', code: 'MBA105', name: 'Marketing Management', credits: 4 },
+      { id: 'MBA106', code: 'MBA106', name: 'Human Resource Management', credits: 4 },
+      { id: 'MBA107', code: 'MBA107', name: 'Organizational Behavior', credits: 4 },
+      { id: 'MBA108', code: 'MBA108', name: 'Operations Management', credits: 4 },
+      { id: 'MBA109', code: 'MBA109', name: 'Legal Aspects of Business', credits: 4 }
+    ],
+    grades: [
+      { courseId: 'MBA101', marks: 61, grade: 'Pass' },
+      { courseId: 'MBA102', marks: 62, grade: 'Pass' },
+      { courseId: 'MBA103', marks: 57, grade: 'Pass' },
+      { courseId: 'MBA104', marks: 65, grade: 'Pass' },
+      { courseId: 'MBA105', marks: 62, grade: 'Pass' },
+      { courseId: 'MBA106', marks: 70, grade: 'Pass' },
+      { courseId: 'MBA107', marks: 57, grade: 'Pass' },
+      { courseId: 'MBA108', marks: 69, grade: 'Pass' },
+      { courseId: 'MBA109', marks: 71, grade: 'Pass' }
+    ],
+    gpa: 3.2,
+    verificationHash: '0xfd5ea36004851c664b3e3b0dae9d71b4e0069fa7a8d24c6f0d0748f5c4c947a9',
+    ipfsHash: 'QmZRcTnYC2CchfYm8yVA6KLB7QmkUQDXpUdSGRMVZuRoKb',
+    resultImageUrl: '/lovable-uploads/5a77a6af-d002-45e6-9355-0103846d6dfe.png'
   }
 };
 

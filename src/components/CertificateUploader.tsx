@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Upload, FileUp, X, Check, Loader2, FileX, ChevronDown, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -36,13 +35,11 @@ const CertificateUploader: React.FC<CertificateUploaderProps> = ({ onVerify, isV
   };
   
   const validateFile = (file: File): boolean => {
-    // Check file size (10MB max)
     if (file.size > 10 * 1024 * 1024) {
       setFileError('File is too large. Maximum size is 10MB.');
       return false;
     }
     
-    // Check file type (pdf and image files)
     const validTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
     if (!validTypes.includes(file.type)) {
       setFileError('Invalid file type. Please upload PDF or image files (JPEG, PNG).');
@@ -60,26 +57,24 @@ const CertificateUploader: React.FC<CertificateUploaderProps> = ({ onVerify, isV
     setIsCalculatingHash(true);
     
     try {
-      // Calculate document hash
       const documentHash = await calculateDocumentHash(file);
       
-      // Determine if this is a specific known document (like JNU marksheet)
-      // Here we're checking for file attributes that might suggest it's a marksheet
       const isKnownMarksheet = 
         file.name.includes('JNU') || 
+        file.name.includes('KSOU') ||
         file.name.includes('marksheet') || 
         file.name.includes('result') ||
-        file.size > 50000; // Simplified check for demo
+        file.size > 50000;
       
       let resultId = null;
       
-      // For the demo, we'll map certain file characteristics to specific result IDs
       if (isKnownMarksheet) {
-        // If it's likely a JNU marksheet (matching the provided image)
-        if (file.name.includes('JNU') || file.size > 100000) {
+        if (file.name.includes('JNU') || file.name.includes('jnu')) {
           resultId = 'JNU-PGDOM-43825';
         } 
-        // If it seems like another marksheet
+        else if (file.name.includes('KSOU') || file.name.includes('ksou') || file.name.includes('MBA') || file.name.includes('Amiya')) {
+          resultId = 'KSOU-MBA-142071';
+        }
         else if (file.name.includes('BHU')) {
           resultId = 'BHU-CSE-56789';
         }
@@ -88,10 +83,8 @@ const CertificateUploader: React.FC<CertificateUploaderProps> = ({ onVerify, isV
         }
       }
       
-      // Create base64 representation of file for QR code
       let documentData: any = null;
       
-      // Only include file data for images (PDFs would be too large)
       if (file.type.startsWith('image/')) {
         const reader = new FileReader();
         documentData = await new Promise((resolve) => {
@@ -107,7 +100,6 @@ const CertificateUploader: React.FC<CertificateUploaderProps> = ({ onVerify, isV
           reader.readAsDataURL(file);
         });
       } else {
-        // For PDFs just store metadata
         documentData = {
           fileType: file.type,
           fileName: file.name,
@@ -116,20 +108,21 @@ const CertificateUploader: React.FC<CertificateUploaderProps> = ({ onVerify, isV
         };
       }
       
-      // If we have a mapped result ID, let's include student data in the QR code
       if (resultId) {
         const studentResult = getResultById(resultId);
         if (studentResult) {
-          // Enhanced QR code data with student result information
           documentData.studentInfo = {
             name: studentResult.student.name,
             rollNo: studentResult.student.roll,
             program: studentResult.student.program
           };
+          
+          if (studentResult.resultImageUrl) {
+            documentData.resultImageUrl = studentResult.resultImageUrl;
+          }
         }
       }
       
-      // Call the onVerify callback with the hash and document data
       if (documentHash) {
         onVerify(documentHash, documentData);
       }

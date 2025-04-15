@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { QrReader } from 'react-qr-reader';
 import { Button } from '@/components/ui/button';
@@ -19,6 +18,7 @@ interface DocumentData {
   data?: string;
   size?: number;
   resultId?: string;
+  resultImageUrl?: string;
 }
 
 const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScan, onClose }) => {
@@ -30,7 +30,6 @@ const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScan, onClose }) => {
   const [verificationStatus, setVerificationStatus] = useState<'verified' | 'failed' | null>(null);
   const [studentResult, setStudentResult] = useState<any>(null);
 
-  // Request camera permission on component mount
   useEffect(() => {
     const requestCameraPermission = async () => {
       try {
@@ -39,9 +38,7 @@ const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScan, onClose }) => {
           video: { facingMode } 
         });
         
-        // If we got a stream, we have permission
         setHasPermission(true);
-        // Clean up stream tracks
         stream.getTracks().forEach(track => track.stop());
         setError(null);
       } catch (err) {
@@ -61,16 +58,13 @@ const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScan, onClose }) => {
       const text = result?.text;
       if (text) {
         try {
-          // Check if the QR code contains document data
           const qrData = JSON.parse(text);
           
           if (qrData.verify && qrData.documentData) {
-            // We have document data and verification hash
             const documentData = qrData.documentData;
             setScannedDocument(documentData);
             setVerificationStatus('verified');
             
-            // Check if there's an associated result ID
             if (documentData.resultId) {
               const resultData = getResultById(documentData.resultId);
               setStudentResult(resultData);
@@ -83,15 +77,12 @@ const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScan, onClose }) => {
               description: "This document has been verified as authentic",
             });
             
-            // Pass the verification hash to the parent component
             onScan(qrData.verify);
           } else {
-            // Standard verification hash
             toast.success("QR code detected!");
             onScan(text);
           }
         } catch (e) {
-          // Not JSON, treat as regular verification URL/hash
           toast.success("QR code detected!");
           onScan(text);
         }
@@ -99,11 +90,9 @@ const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScan, onClose }) => {
     }
   };
 
-  // Handle camera toggle while resetting any errors
   const toggleCamera = (mode: 'environment' | 'user') => {
     setFacingMode(mode);
     setError(null);
-    // Re-request permission with new camera
     setIsLoading(true);
     navigator.mediaDevices.getUserMedia({ 
       video: { facingMode: mode } 
@@ -141,7 +130,6 @@ const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScan, onClose }) => {
     }
   };
 
-  // If we already scanned a document with embedded data, show it
   if (scannedDocument) {
     return (
       <div className="bg-background border rounded-lg p-4 shadow-md">
@@ -155,7 +143,19 @@ const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScan, onClose }) => {
           </Button>
         </div>
         
-        {studentResult ? (
+        {studentResult?.resultImageUrl ? (
+          <div className="relative mb-4">
+            <img 
+              src={studentResult.resultImageUrl} 
+              alt="Verified Certificate" 
+              className="w-full object-contain border rounded-lg"
+            />
+            <div className="absolute top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-md font-semibold text-sm flex items-center shadow-md">
+              <ShieldCheck className="h-4 w-4 mr-2" />
+              Verified on Blockchain
+            </div>
+          </div>
+        ) : studentResult ? (
           <div className="space-y-4">
             <Card className="bg-blue-50/50 border-blue-200">
               <CardHeader className="pb-2">
@@ -243,20 +243,18 @@ const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScan, onClose }) => {
           <Card className="mb-4 overflow-hidden">
             <CardContent className="p-0 relative">
               {scannedDocument.data ? (
-                // Display the image if we have it
                 <div className="relative">
                   <img 
                     src={scannedDocument.data} 
                     alt="Verified Certificate" 
                     className="w-full object-contain"
                   />
-                  <div className="absolute top-0 right-0 bg-green-500 text-white px-3 py-1 rounded-bl-lg font-semibold text-sm flex items-center">
-                    <ShieldCheck className="h-4 w-4 mr-1" />
+                  <div className="absolute top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-md font-semibold text-sm flex items-center shadow-md">
+                    <ShieldCheck className="h-4 w-4 mr-2" />
                     Verified on Blockchain
                   </div>
                 </div>
               ) : (
-                // Display file info if no image data
                 <div className="p-4 text-center">
                   <h4 className="font-medium">{scannedDocument.fileName}</h4>
                   <p className="text-sm text-muted-foreground">
