@@ -294,8 +294,8 @@ export const addTeacher = async (teacherAddress: string): Promise<boolean> => {
   }
 };
 
-// Upload a result (teacher only function)
-export const uploadResult = async (studentId: string, resultData: any): Promise<boolean> => {
+// Upload a result to blockchain (teacher/admin function)
+export const uploadResultToBlockchain = async (studentId: string, resultData: any, isRealBlockchainMode: boolean): Promise<boolean> => {
   try {
     const provider = getProvider();
     if (!provider) return false;
@@ -311,24 +311,97 @@ export const uploadResult = async (studentId: string, resultData: any): Promise<
     // Calculate hash from result data
     const resultHash = calculateResultHash(resultData);
     
-    const contractAddress = getContractAddress();
+    // Get delay based on mode - for user experience
+    const delay = isRealBlockchainMode ? 3000 : 1500;
+    await new Promise(resolve => setTimeout(resolve, delay));
     
-    if (contractAddress) {
-      // If contract is deployed, use it to add the result
-      const contract = getContract();
-      if (!contract) throw new Error('Contract not available');
+    if (isRealBlockchainMode) {
+      // Use the contract if in real blockchain mode and a contract is deployed
+      const contractAddress = getContractAddress();
       
-      const signer = provider.getSigner();
-      const connectedContract = contract.connect(signer);
+      if (contractAddress) {
+        const contract = getContract();
+        if (!contract) throw new Error('Contract not available');
+        
+        const signer = provider.getSigner();
+        const connectedContract = contract.connect(signer);
+        
+        // Call the smart contract to add the result
+        const tx = await connectedContract.addResult(studentId, resultHash);
+        await tx.wait();
+        
+        console.log("Transaction hash:", tx.hash);
+        console.log("Result added to blockchain for student:", studentId);
+        
+        return true;
+      } else {
+        throw new Error('No contract deployed. Please deploy a contract first.');
+      }
+    } else {
+      // Simulate blockchain interaction in testing mode
+      console.log("Simulating blockchain transaction for student:", studentId);
+      console.log("Result hash (simulated):", resultHash);
       
-      const tx = await connectedContract.addResult(studentId, resultHash);
-      await tx.wait();
+      // In testing mode, we just return success
+      return true;
+    }
+  } catch (error) {
+    console.error('Error uploading result to blockchain:', error);
+    return false;
+  }
+};
+
+// Upload certificate to blockchain
+export const uploadCertificateToBlockchain = async (fileHash: string, studentId: string, isRealBlockchainMode: boolean): Promise<boolean> => {
+  try {
+    const provider = getProvider();
+    if (!provider) return false;
+    
+    const accounts = await provider.send('eth_accounts', []);
+    const currentAddress = accounts[0].toLowerCase();
+    
+    // Check if caller is teacher or admin
+    if (!TEACHER_ADDRESSES.includes(currentAddress) && !ADMIN_ADDRESSES.includes(currentAddress)) {
+      throw new Error('Only teachers and admins can upload certificates');
     }
     
-    // Demo implementation - just return true
-    return true;
+    // Get delay based on mode - for user experience
+    const delay = isRealBlockchainMode ? 3000 : 1500;
+    await new Promise(resolve => setTimeout(resolve, delay));
+    
+    if (isRealBlockchainMode) {
+      // Use the contract if in real blockchain mode and a contract is deployed
+      const contractAddress = getContractAddress();
+      
+      if (contractAddress) {
+        const contract = getContract();
+        if (!contract) throw new Error('Contract not available');
+        
+        const signer = provider.getSigner();
+        const connectedContract = contract.connect(signer);
+        
+        // Use the fileHash as the resultHash for certificate verification
+        // Student ID will be the roll number
+        const tx = await connectedContract.addResult(studentId, fileHash);
+        await tx.wait();
+        
+        console.log("Transaction hash:", tx.hash);
+        console.log("Certificate added to blockchain for student:", studentId);
+        
+        return true;
+      } else {
+        throw new Error('No contract deployed. Please deploy a contract first.');
+      }
+    } else {
+      // Simulate blockchain interaction in testing mode
+      console.log("Simulating blockchain transaction for certificate:", fileHash);
+      console.log("Student ID (simulated):", studentId);
+      
+      // In testing mode, we just return success
+      return true;
+    }
   } catch (error) {
-    console.error('Error uploading result:', error);
+    console.error('Error uploading certificate to blockchain:', error);
     return false;
   }
 };

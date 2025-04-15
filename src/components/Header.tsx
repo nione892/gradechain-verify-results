@@ -61,10 +61,10 @@ const Header: React.FC = () => {
     const newMode = !isRealBlockchainMode;
     setIsRealBlockchainMode(newMode);
     toast({
-      title: newMode ? "Real Blockchain Mode Activated" : "Demo Mode Activated",
+      title: newMode ? "Blockchain Deployment Mode" : "Local Testing Mode",
       description: newMode 
-        ? "Now using real blockchain verification with Ethereum Sepolia testnet" 
-        : "Now using local verification without blockchain transactions",
+        ? "Transactions will be sent to the Ethereum Sepolia testnet" 
+        : "Transactions will be simulated locally without blockchain interaction",
     });
   };
 
@@ -83,7 +83,7 @@ const Header: React.FC = () => {
           <div className="flex items-center space-x-4">
             <div className="flex items-center mr-4 bg-muted/50 p-2 rounded-lg shadow-sm">
               <Label htmlFor="blockchain-mode" className={`text-xs mr-2 ${isRealBlockchainMode ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
-                {isRealBlockchainMode ? 'Real Blockchain' : 'Demo Mode'}
+                {isRealBlockchainMode ? 'Deploy Mode' : 'Testing Mode'}
               </Label>
               <Switch
                 id="blockchain-mode"

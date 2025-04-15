@@ -1,17 +1,20 @@
 
-import React, { useState, useEffect } from 'react';
-import Header from '@/components/Header';
+import React, { useState, useEffect, useContext } from 'react';
+import Header, { BlockchainModeContext } from '@/components/Header';
 import Footer from '@/components/Footer';
 import TeacherDashboard from '@/components/TeacherDashboard';
 import { getUserRole } from '@/utils/web3Utils';
 import { AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 const TeacherPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isTeacher, setIsTeacher] = useState(false);
   const navigate = useNavigate();
+  const { isRealBlockchainMode } = useContext(BlockchainModeContext);
+  const { toast } = useToast();
 
   useEffect(() => {
     const checkAccess = async () => {
@@ -22,6 +25,14 @@ const TeacherPage: React.FC = () => {
           if (accounts.length > 0) {
             const role = getUserRole(accounts[0]);
             setIsTeacher(role === 'teacher' || role === 'admin');
+            
+            if (isRealBlockchainMode && role !== 'teacher' && role !== 'admin') {
+              toast({
+                variant: "destructive",
+                title: "Access Denied",
+                description: "In blockchain deployment mode, only verified teachers can access this area."
+              });
+            }
           } else {
             setIsTeacher(false);
           }
@@ -36,7 +47,7 @@ const TeacherPage: React.FC = () => {
     };
 
     checkAccess();
-  }, [navigate]);
+  }, [navigate, isRealBlockchainMode, toast]);
 
   if (isLoading) {
     return (
