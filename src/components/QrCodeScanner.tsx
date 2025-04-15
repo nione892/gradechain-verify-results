@@ -18,7 +18,21 @@ interface DocumentData {
   data?: string;
   size?: number;
   resultId?: string;
+  studentInfo?: {
+    name: string;
+    rollNo: string;
+    program: string;
+    semester?: string;
+    academicYear?: string;
+  };
+  grades?: Array<{
+    course: string;
+    marks: number;
+    grade: string;
+  }>;
+  gpa?: number;
   resultImageUrl?: string;
+  timestamp?: string;
 }
 
 const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScan, onClose }) => {
@@ -61,7 +75,7 @@ const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScan, onClose }) => {
           const qrData = JSON.parse(text);
           
           if (qrData.verify && qrData.documentData) {
-            const documentData = qrData.documentData;
+            const documentData = qrData.documentData as DocumentData;
             setScannedDocument(documentData);
             setVerificationStatus('verified');
             
@@ -155,7 +169,21 @@ const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScan, onClose }) => {
               Verified on Blockchain
             </div>
           </div>
-        ) : studentResult ? (
+        ) : scannedDocument.data ? (
+          <div className="relative mb-4">
+            <img 
+              src={scannedDocument.data} 
+              alt="Verified Certificate" 
+              className="w-full object-contain border rounded-lg"
+            />
+            <div className="absolute top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-md font-semibold text-sm flex items-center shadow-md">
+              <ShieldCheck className="h-4 w-4 mr-2" />
+              Verified on Blockchain
+            </div>
+          </div>
+        ) : null}
+        
+        {studentResult || scannedDocument.studentInfo ? (
           <div className="space-y-4">
             <Card className="bg-blue-50/50 border-blue-200">
               <CardHeader className="pb-2">
@@ -168,105 +196,101 @@ const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScan, onClose }) => {
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
                     <p className="font-medium text-muted-foreground">Name:</p>
-                    <p>{studentResult.student.name}</p>
+                    <p>{studentResult?.student.name || scannedDocument.studentInfo?.name}</p>
                   </div>
                   <div>
                     <p className="font-medium text-muted-foreground">Roll No:</p>
-                    <p>{studentResult.student.roll}</p>
+                    <p>{studentResult?.student.roll || scannedDocument.studentInfo?.rollNo}</p>
                   </div>
                   <div>
                     <p className="font-medium text-muted-foreground">Program:</p>
-                    <p>{studentResult.student.program}</p>
+                    <p>{studentResult?.student.program || scannedDocument.studentInfo?.program}</p>
                   </div>
                   <div>
                     <p className="font-medium text-muted-foreground">Semester:</p>
-                    <p>{studentResult.semester}</p>
+                    <p>{studentResult?.semester || scannedDocument.studentInfo?.semester || "N/A"}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
             
-            <Card className="mb-4 overflow-hidden">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center">
-                  <Award className="h-4 w-4 mr-2 text-amber-500" />
-                  Academic Results
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="px-2 py-1 text-left">Subject</th>
-                        <th className="px-2 py-1 text-right">Marks</th>
-                        <th className="px-2 py-1 text-right">Grade</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {studentResult.grades.map((grade: any, index: number) => {
-                        const course = studentResult.courses.find((c: any) => c.id === grade.courseId);
-                        return (
-                          <tr key={grade.courseId} className="border-b border-dashed">
-                            <td className="px-2 py-1 text-left">{course?.name || grade.courseId}</td>
+            {(studentResult?.grades || scannedDocument.grades) && (
+              <Card className="mb-4 overflow-hidden">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center">
+                    <Award className="h-4 w-4 mr-2 text-amber-500" />
+                    Academic Results
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="px-2 py-1 text-left">Subject</th>
+                          <th className="px-2 py-1 text-right">Marks</th>
+                          <th className="px-2 py-1 text-right">Grade</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {studentResult?.grades ? 
+                          studentResult.grades.map((grade: any, index: number) => {
+                            const course = studentResult.courses.find((c: any) => c.id === grade.courseId);
+                            return (
+                              <tr key={grade.courseId} className="border-b border-dashed">
+                                <td className="px-2 py-1 text-left">{course?.name || grade.courseId}</td>
+                                <td className="px-2 py-1 text-right">{grade.marks}</td>
+                                <td className="px-2 py-1 text-right font-medium">{grade.grade}</td>
+                              </tr>
+                            );
+                          })
+                        : scannedDocument.grades?.map((grade, index) => (
+                          <tr key={index} className="border-b border-dashed">
+                            <td className="px-2 py-1 text-left">{grade.course}</td>
                             <td className="px-2 py-1 text-right">{grade.marks}</td>
                             <td className="px-2 py-1 text-right font-medium">{grade.grade}</td>
                           </tr>
-                        );
-                      })}
-                    </tbody>
-                    <tfoot>
-                      <tr className="bg-muted/30">
-                        <td className="px-2 py-1 font-medium">Result</td>
-                        <td className="px-2 py-1 text-right" colSpan={2}>
-                          <span className="font-medium text-green-600">PASS</span>
-                          {studentResult.gpa && (
-                            <span className="ml-2">GPA: {studentResult.gpa.toFixed(1)}</span>
-                          )}
-                        </td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-                
-                <div className="flex justify-between items-center mt-4 text-xs text-muted-foreground">
-                  <div>Issue Date: {studentResult.issueDate}</div>
-                  <div className="flex items-center bg-green-100 text-green-800 px-2.5 py-1 rounded-full">
-                    <ShieldCheck className="h-3 w-3 mr-1" />
-                    Blockchain Verified
+                        ))}
+                      </tbody>
+                      <tfoot>
+                        <tr className="bg-muted/30">
+                          <td className="px-2 py-1 font-medium">Result</td>
+                          <td className="px-2 py-1 text-right" colSpan={2}>
+                            <span className="font-medium text-green-600">PASS</span>
+                            {(studentResult?.gpa || scannedDocument.gpa) && (
+                              <span className="ml-2">GPA: {(studentResult?.gpa || scannedDocument.gpa).toFixed(1)}</span>
+                            )}
+                          </td>
+                        </tr>
+                      </tfoot>
+                    </table>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                  
+                  <div className="flex justify-between items-center mt-4 text-xs text-muted-foreground">
+                    <div>Issue Date: {studentResult?.issueDate || new Date().toLocaleDateString()}</div>
+                    <div className="flex items-center bg-green-100 text-green-800 px-2.5 py-1 rounded-full">
+                      <ShieldCheck className="h-3 w-3 mr-1" />
+                      Blockchain Verified
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         ) : (
           <Card className="mb-4 overflow-hidden">
             <CardContent className="p-0 relative">
-              {scannedDocument.data ? (
-                <div className="relative">
-                  <img 
-                    src={scannedDocument.data} 
-                    alt="Verified Certificate" 
-                    className="w-full object-contain"
-                  />
-                  <div className="absolute top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-md font-semibold text-sm flex items-center shadow-md">
-                    <ShieldCheck className="h-4 w-4 mr-2" />
-                    Verified on Blockchain
-                  </div>
+              <div className="p-4 text-center">
+                <h4 className="font-medium">{scannedDocument.fileName}</h4>
+                <p className="text-sm text-muted-foreground">
+                  {scannedDocument.fileType} 
+                  {scannedDocument.size && ` - ${(scannedDocument.size / 1024).toFixed(1)} KB`}
+                </p>
+                <div className="mt-2 inline-block bg-green-500 text-white px-3 py-1 rounded-lg font-semibold text-sm flex items-center">
+                  <ShieldCheck className="h-4 w-4 mr-1" />
+                  Verified on Blockchain
                 </div>
-              ) : (
-                <div className="p-4 text-center">
-                  <h4 className="font-medium">{scannedDocument.fileName}</h4>
-                  <p className="text-sm text-muted-foreground">
-                    {scannedDocument.fileType} 
-                    {scannedDocument.size && ` - ${(scannedDocument.size / 1024).toFixed(1)} KB`}
-                  </p>
-                  <div className="mt-2 inline-block bg-green-500 text-white px-3 py-1 rounded-lg font-semibold text-sm flex items-center">
-                    <ShieldCheck className="h-4 w-4 mr-1" />
-                    Verified on Blockchain
-                  </div>
-                </div>
-              )}
+              </div>
             </CardContent>
           </Card>
         )}

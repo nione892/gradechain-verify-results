@@ -22,6 +22,7 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
   const [searchError, setSearchError] = useState('');
   const [activeTab, setActiveTab] = useState<'id' | 'document' | 'qrcode'>('id');
   const [showQrScanner, setShowQrScanner] = useState(false);
+  const [lastVerifiedDocumentData, setLastVerifiedDocumentData] = useState<any>(null);
   const { toast } = useToast();
   const { isRealBlockchainMode } = React.useContext(BlockchainModeContext);
 
@@ -51,6 +52,10 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
               ? "Result has been verified on the blockchain" 
               : "Result has been verified in demo mode",
           });
+          
+          // Clear any previous document data to ensure fresh display
+          setLastVerifiedDocumentData(null);
+          
           onResultFound(resultId);
         } else {
           toast({
@@ -88,6 +93,11 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
     setIsSearching(true);
     
     try {
+      // Store document data for later use
+      if (documentData) {
+        setLastVerifiedDocumentData(documentData);
+      }
+      
       const verificationResult = await verifyDocumentHash(documentHash);
       
       if (verificationResult.isVerified) {
@@ -97,8 +107,13 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
             ? "The certificate has been verified on the blockchain" 
             : "The certificate has been verified in demo mode",
         });
-        if (verificationResult.resultId) {
-          onResultFound(verificationResult.resultId);
+        
+        // If we have a resultId from verification or from the document data
+        const resultIdToUse = verificationResult.resultId || documentData?.resultId;
+        
+        if (resultIdToUse) {
+          // Reset document data to force fresh load
+          onResultFound(resultIdToUse);
         }
       } else {
         toast({
@@ -131,6 +146,11 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
         setResultId(parsedData.verify);
         setActiveTab('id');
         
+        // Store document data if present
+        if (parsedData.documentData) {
+          setLastVerifiedDocumentData(parsedData.documentData);
+        }
+        
         // Trigger verification process
         setIsSearching(true);
         
@@ -144,8 +164,14 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
                 ? "The certificate has been verified on the blockchain" 
                 : "The certificate has been verified in demo mode",
             });
-            if (verificationResult.resultId) {
-              onResultFound(verificationResult.resultId);
+            
+            // If a resultId is available from either source, use it
+            const resultIdToUse = verificationResult.resultId || 
+                                 parsedData.documentData?.resultId ||
+                                 parsedData.resultId;
+                                 
+            if (resultIdToUse) {
+              onResultFound(resultIdToUse);
             }
           } else {
             toast({
@@ -187,6 +213,7 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
                 ? "The certificate has been verified on the blockchain" 
                 : "The certificate has been verified in demo mode",
             });
+            
             if (verificationResult.resultId) {
               onResultFound(verificationResult.resultId);
             }
@@ -211,6 +238,9 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
         // Try to use the QR data directly as a result ID
         setResultId(qrData);
         setActiveTab('id');
+        
+        // Clear any previous document data
+        setLastVerifiedDocumentData(null);
         
         // Manually submit the form
         const verifyEvent = new Event('submit', { cancelable: true });
@@ -354,7 +384,8 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
                     <p className="font-medium mb-1">Example IDs for testing:</p>
                     <ul className="list-disc list-inside space-y-1 pl-2">
                       <li className="flex items-center gap-1"><span className="text-green-500">✓</span> STU20210001-SEM2-123 (will verify)</li>
-                      <li className="flex items-center gap-1"><span className="text-red-500">✗</span> STU20210002-SEM1-456 (won't verify)</li>
+                      <li className="flex items-center gap-1"><span className="text-green-500">✓</span> JNU-PGDOM-43825 (will verify)</li>
+                      <li className="flex items-center gap-1"><span className="text-green-500">✓</span> KSOU-MBA-142071 (will verify)</li>
                       <li className="flex items-center gap-1"><span className="text-red-500">✗</span> STU20210003-SEM3-789 (won't verify)</li>
                     </ul>
                   </motion.div>

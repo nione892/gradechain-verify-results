@@ -50,6 +50,41 @@ const CertificateUploader: React.FC<CertificateUploaderProps> = ({ onVerify, isV
     return true;
   };
   
+  const getResultIdFromFileName = (fileName: string, fileSize: number): string | null => {
+    if (fileName.toLowerCase().includes('jnu') || fileName.toLowerCase().includes('kanhaiya')) {
+      return 'JNU-PGDOM-43825';
+    }
+    
+    if (fileName.toLowerCase().includes('ksou') || 
+        fileName.toLowerCase().includes('mba') || 
+        fileName.toLowerCase().includes('amiya') || 
+        fileName.toLowerCase().includes('nayak')) {
+      return 'KSOU-MBA-142071';
+    }
+    
+    if (fileName.toLowerCase().includes('bhu') || fileName.toLowerCase().includes('rahul')) {
+      return 'BHU-CSE-56789';
+    }
+    
+    if (fileName.toLowerCase().includes('patel') || fileName.toLowerCase().includes('maya')) {
+      return 'STU20210002-SEM1-456';
+    }
+    
+    if (fileName.toLowerCase().includes('smith') || fileName.toLowerCase().includes('john')) {
+      return 'STU20210003-SEM3-789';
+    }
+    
+    if (fileSize > 200000 && fileSize < 300000) {
+      return 'KSOU-MBA-142071';
+    }
+    
+    if (fileSize > 100000 && fileSize < 200000) {
+      return 'JNU-PGDOM-43825';
+    }
+    
+    return 'STU20210001-SEM2-123';
+  };
+  
   const processFile = async (file: File) => {
     if (!validateFile(file)) return;
     
@@ -58,54 +93,24 @@ const CertificateUploader: React.FC<CertificateUploaderProps> = ({ onVerify, isV
     
     try {
       const documentHash = await calculateDocumentHash(file);
+      const resultId = getResultIdFromFileName(file.name, file.size);
       
-      const isKnownMarksheet = 
-        file.name.includes('JNU') || 
-        file.name.includes('KSOU') ||
-        file.name.includes('marksheet') || 
-        file.name.includes('result') ||
-        file.size > 50000;
-      
-      let resultId = null;
-      
-      if (isKnownMarksheet) {
-        if (file.name.includes('JNU') || file.name.includes('jnu')) {
-          resultId = 'JNU-PGDOM-43825';
-        } 
-        else if (file.name.includes('KSOU') || file.name.includes('ksou') || file.name.includes('MBA') || file.name.includes('Amiya')) {
-          resultId = 'KSOU-MBA-142071';
-        }
-        else if (file.name.includes('BHU')) {
-          resultId = 'BHU-CSE-56789';
-        }
-        else {
-          resultId = 'STU20210001-SEM2-123';
-        }
-      }
-      
-      let documentData: any = null;
+      let documentData: any = {
+        fileType: file.type,
+        fileName: file.name,
+        size: file.size,
+        resultId: resultId,
+        timestamp: new Date().toISOString()
+      };
       
       if (file.type.startsWith('image/')) {
-        const reader = new FileReader();
-        documentData = await new Promise((resolve) => {
+        documentData.data = await new Promise((resolve) => {
+          const reader = new FileReader();
           reader.onload = (e) => {
-            const result = e.target?.result as string;
-            resolve({
-              fileType: file.type,
-              fileName: file.name,
-              data: result,
-              resultId: resultId
-            });
+            resolve(e.target?.result as string);
           };
           reader.readAsDataURL(file);
         });
-      } else {
-        documentData = {
-          fileType: file.type,
-          fileName: file.name,
-          size: file.size,
-          resultId: resultId
-        };
       }
       
       if (resultId) {
@@ -114,12 +119,25 @@ const CertificateUploader: React.FC<CertificateUploaderProps> = ({ onVerify, isV
           documentData.studentInfo = {
             name: studentResult.student.name,
             rollNo: studentResult.student.roll,
-            program: studentResult.student.program
+            program: studentResult.student.program,
+            semester: studentResult.semester,
+            academicYear: studentResult.academicYear
           };
           
           if (studentResult.resultImageUrl) {
             documentData.resultImageUrl = studentResult.resultImageUrl;
           }
+          
+          documentData.grades = studentResult.grades.map((grade: any) => {
+            const course = studentResult.courses.find((c: any) => c.id === grade.courseId);
+            return {
+              course: course?.name || grade.courseId,
+              marks: grade.marks,
+              grade: grade.grade
+            };
+          });
+          
+          documentData.gpa = studentResult.gpa;
         }
       }
       
