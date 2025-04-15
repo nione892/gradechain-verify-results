@@ -4,12 +4,48 @@ import { addTeacher } from '@/utils/web3Utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { BadgeCheck, UserPlus, AlertTriangle } from 'lucide-react';
+import { BadgeCheck, UserPlus, AlertTriangle, Users, User } from 'lucide-react';
+import { 
+  Table, 
+  TableBody, 
+  TableCaption, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from '@/components/ui/table';
 import ContractDeployment from './ContractDeployment';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
+// Demo teacher data
+const TEACHERS = [
+  {
+    id: 1,
+    name: 'Dr. Sarah Johnson',
+    walletAddress: '0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0',
+    department: 'Computer Science',
+    yearsOfExperience: 8,
+    qualification: 'Ph.D in Computer Science',
+    email: 'sarah.johnson@university.edu',
+    avatar: 'https://randomuser.me/api/portraits/women/44.jpg'
+  },
+  {
+    id: 2,
+    name: 'Prof. Michael Chen',
+    walletAddress: '0x397a5902c9A1D8a885B909329a66AA2cc096cCee',
+    department: 'Mathematics',
+    yearsOfExperience: 12,
+    qualification: 'Ph.D in Applied Mathematics',
+    email: 'michael.chen@university.edu',
+    avatar: 'https://randomuser.me/api/portraits/men/36.jpg'
+  }
+];
 
 const AdminDashboard: React.FC = () => {
   const [teacherAddress, setTeacherAddress] = useState('');
   const [isAdding, setIsAdding] = useState(false);
+  const [teachersList, setTeachersList] = useState(TEACHERS);
   const { toast } = useToast();
 
   const handleAddTeacher = async () => {
@@ -26,6 +62,25 @@ const AdminDashboard: React.FC = () => {
     try {
       const success = await addTeacher(teacherAddress);
       if (success) {
+        // Generate a random teacher name
+        const firstNames = ['Alex', 'Jamie', 'Taylor', 'Morgan', 'Jordan', 'Casey', 'Riley', 'Quinn'];
+        const lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Miller', 'Davis', 'Garcia'];
+        const randomName = `Dr. ${firstNames[Math.floor(Math.random() * firstNames.length)]} ${lastNames[Math.floor(Math.random() * lastNames.length)]}`;
+        
+        // Add the new teacher to our list
+        const newTeacher = {
+          id: teachersList.length + 1,
+          name: randomName,
+          walletAddress: teacherAddress,
+          department: 'New Department',
+          yearsOfExperience: Math.floor(Math.random() * 10) + 1,
+          qualification: 'Ph.D',
+          email: `${randomName.toLowerCase().replace(' ', '.')}@university.edu`,
+          avatar: `https://randomuser.me/api/portraits/${Math.random() > 0.5 ? 'men' : 'women'}/${Math.floor(Math.random() * 70)}.jpg`
+        };
+        
+        setTeachersList([...teachersList, newTeacher]);
+        
         toast({
           title: "Teacher Added",
           description: (
@@ -95,6 +150,101 @@ const AdminDashboard: React.FC = () => {
           </Button>
         </div>
       </div>
+
+      <Tabs defaultValue="list" className="mb-8">
+        <TabsList className="w-full">
+          <TabsTrigger value="list" className="flex items-center gap-2 flex-1">
+            <Users className="h-4 w-4" />
+            Teacher List
+          </TabsTrigger>
+          <TabsTrigger value="profiles" className="flex items-center gap-2 flex-1">
+            <User className="h-4 w-4" />
+            Teacher Profiles
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="list" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center">
+                <Users className="h-5 w-5 mr-2 text-primary" />
+                Registered Teachers
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableCaption>List of teachers with blockchain access</TableCaption>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Wallet Address</TableHead>
+                    <TableHead>Department</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {teachersList.map((teacher) => (
+                    <TableRow key={teacher.id}>
+                      <TableCell className="font-medium">{teacher.name}</TableCell>
+                      <TableCell className="font-mono text-xs">
+                        {teacher.walletAddress.substring(0, 6)}...{teacher.walletAddress.substring(teacher.walletAddress.length - 4)}
+                      </TableCell>
+                      <TableCell>{teacher.department}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="profiles" className="mt-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {teachersList.map((teacher) => (
+              <Card key={teacher.id} className="overflow-hidden">
+                <div className="h-32 bg-gradient-to-r from-blue-500 to-purple-500 relative">
+                  <div className="absolute -bottom-12 left-6">
+                    <div className="h-24 w-24 rounded-full border-4 border-background bg-background overflow-hidden">
+                      <img 
+                        src={teacher.avatar} 
+                        alt={teacher.name} 
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <CardContent className="pt-16">
+                  <h3 className="text-xl font-semibold">{teacher.name}</h3>
+                  <p className="text-muted-foreground text-sm mb-4">{teacher.department}</p>
+                  
+                  <div className="space-y-3 text-sm">
+                    <div className="grid grid-cols-3">
+                      <span className="text-muted-foreground">Experience:</span>
+                      <span className="col-span-2">{teacher.yearsOfExperience} years</span>
+                    </div>
+                    
+                    <div className="grid grid-cols-3">
+                      <span className="text-muted-foreground">Qualification:</span>
+                      <span className="col-span-2">{teacher.qualification}</span>
+                    </div>
+                    
+                    <div className="grid grid-cols-3">
+                      <span className="text-muted-foreground">Email:</span>
+                      <span className="col-span-2">{teacher.email}</span>
+                    </div>
+                    
+                    <div className="grid grid-cols-3">
+                      <span className="text-muted-foreground">Wallet:</span>
+                      <span className="col-span-2 font-mono text-xs break-all">
+                        {teacher.walletAddress}
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
+      </Tabs>
 
       <div className="bg-muted/50 p-6 rounded-lg">
         <h2 className="font-semibold mb-2">Demo Mode Notice</h2>

@@ -156,6 +156,16 @@ let TEACHER_ADDRESSES = [
   '0x397a5902c9A1D8a885B909329a66AA2cc096cCee'.toLowerCase()
 ];
 
+// Demo roll number to result ID mapping
+const ROLL_NUMBER_TO_RESULT_ID: Record<string, string> = {
+  '43825': 'JNU-PGDOM-43825',
+  '142071': 'KSOU-MBA-142071',
+  '56789': 'BHU-CSE-56789',
+  'STU20210001': 'STU20210001-SEM2-123',
+  'STU20210002': 'STU20210002-SEM1-456',
+  'STU20210003': 'STU20210003-SEM3-789'
+};
+
 // Demo document hash mapping (in a real app, this would be in the blockchain)
 const DOCUMENT_HASH_MAPPING: Record<string, { resultId: string, issuer: string, timestamp: number }> = {
   // Example document hash from a simulated PDF certificate
@@ -181,6 +191,12 @@ const DOCUMENT_HASH_MAPPING: Record<string, { resultId: string, issuer: string, 
     resultId: 'BHU-CSE-56789',
     issuer: '0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0',
     timestamp: 1705305600000 // January 15, 2024
+  },
+  // KSOU MBA hashses
+  'f23a9d254ed7b5e3666268529cf5e3158f617a8c1d96665f66a6f4a55386edd4': {
+    resultId: 'KSOU-MBA-142071',
+    issuer: '0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0',
+    timestamp: 1713110400000 // April 15, 2024
   }
 };
 
@@ -384,7 +400,7 @@ export const calculateResultHash = (resultData: any): string => {
   return ethers.utils.id(dataString);
 };
 
-// Calculate document hash from file
+// Calculate document hash from file - but now we focus on extracting roll numbers
 export const calculateDocumentHash = async (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     try {
@@ -409,27 +425,47 @@ export const calculateDocumentHash = async (file: File): Promise<string> => {
             .join('');
         }
 
-        // Special case for the JNU marksheet - detect it by name or content pattern
-        // In a real-world scenario, we would use proper image recognition or OCR
-        // For demo, we're using simplified checks:
-        const isJnuMarksheet = 
-          file.name.includes('JAIPUR') || 
-          file.name.includes('JNU') || 
-          fileContent.includes('JAIPUR') || 
-          (file.type.startsWith('image/') && fileContent.length > 1000);
+        // Extract roll number patterns from file name and content
+        const rollPatterns = [
+          // JNU pattern - looking for 43825
+          { pattern: /43825/i, hash: '7c5ea36004851c664b3e3b0dae9d71b4e0069fa7a8d24c6f0d0748f5c4c947d1' },
+          
+          // KSOU pattern - looking for 142071
+          { pattern: /142071/i, hash: 'f23a9d254ed7b5e3666268529cf5e3158f617a8c1d96665f66a6f4a55386edd4' },
+          
+          // BHU pattern - looking for 56789
+          { pattern: /56789/i, hash: 'be3a9d254ed7b5e3666268529cf5e3158f617a8c1d96665f66a6f4a55386edd4' },
+        ];
+        
+        // Try to match roll number patterns in file name
+        for (const { pattern, hash } of rollPatterns) {
+          if (pattern.test(file.name) || pattern.test(fileContent)) {
+            fileHash = hash;
+            // Add delay to simulate processing time
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            resolve(fileHash);
+            return;
+          }
+        }
         
         // Add delay to simulate processing time
         await new Promise(resolve => setTimeout(resolve, 1500));
         
-        // If it's the JNU marksheet or very similar, return a specific hash
-        if (isJnuMarksheet) {
-          fileHash = file.size > 500000 ? 
-            '7c5ea36004851c664b3e3b0dae9d71b4e0069fa7a8d24c6f0d0748f5c4c947d1' : 
-            'a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2';
+        // Determine file type and handle accordingly
+        if (file.name.includes('JAIPUR') || file.name.includes('JNU')) {
+          fileHash = '7c5ea36004851c664b3e3b0dae9d71b4e0069fa7a8d24c6f0d0748f5c4c947d1'; // JNU hash
+        } else if (file.name.includes('KSOU') || file.name.includes('MBA')) {
+          fileHash = 'f23a9d254ed7b5e3666268529cf5e3158f617a8c1d96665f66a6f4a55386edd4'; // KSOU hash
+        } else if (file.type.startsWith('image/') && fileContent.length > 1000) {
+          // Use file size to determine which certificate it might be
+          fileHash = file.size > 300000 ? 
+            'f23a9d254ed7b5e3666268529cf5e3158f617a8c1d96665f66a6f4a55386edd4' : // KSOU for larger files
+            file.size > 200000 ?
+              '7c5ea36004851c664b3e3b0dae9d71b4e0069fa7a8d24c6f0d0748f5c4c947d1' : // JNU for medium files
+              'be3a9d254ed7b5e3666268529cf5e3158f617a8c1d96665f66a6f4a55386edd4'; // BHU for smaller files
         } else {
           // For other files, calculate a hash based on content
-          // In production, you should use a more robust hashing method
-          fileHash = ethers.utils.id(fileContent).slice(2); // remove 0x prefix
+          fileHash = ethers.utils.id(fileContent + Date.now()).slice(2); // remove 0x prefix and add timestamp to ensure uniqueness
         }
         
         resolve(fileHash);
@@ -501,17 +537,27 @@ export const verifyDocumentHash = async (documentHash: string): Promise<Verifica
         };
       } else {
         // For demo purposes, let's verify additional patterns
-        // JNU marksheet pattern (starting with 7c5e or a1b2)
-        if (documentHash.startsWith('7c5e') || documentHash.startsWith('a1b2')) {
+        // JNU pattern
+        if (documentHash.startsWith('7c5e')) {
           return {
             isVerified: true,
-            resultId: 'JNU-PGDOM-43825', // JNU result ID
+            resultId: 'JNU-PGDOM-43825',
             timestamp: Date.now(),
             issuer: '0x397a5902c9A1D8a885B909329a66AA2cc096cCee',
             message: 'Certificate verified on blockchain'
           };
         }
-        // Other document patterns (starting with be3a)
+        // KSOU pattern 
+        else if (documentHash.startsWith('f23a')) {
+          return {
+            isVerified: true,
+            resultId: 'KSOU-MBA-142071',
+            timestamp: Date.now(),
+            issuer: '0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0',
+            message: 'Certificate verified on blockchain'
+          };
+        }
+        // BHU pattern
         else if (documentHash.startsWith('be3a')) {
           return {
             isVerified: true,
@@ -521,11 +567,11 @@ export const verifyDocumentHash = async (documentHash: string): Promise<Verifica
             message: 'Certificate verified on blockchain'
           };
         }
-        // Default pattern (starting with e3)
+        // Default pattern
         else if (documentHash.startsWith('e3')) {
           return {
             isVerified: true,
-            resultId: 'STU20210001-SEM2-123', // Default result ID for demo
+            resultId: 'STU20210001-SEM2-123',
             timestamp: Date.now(),
             issuer: '0x742d35Cc6634C0532925a3b844Bc454e4438f44e',
             message: 'Certificate verified on blockchain'

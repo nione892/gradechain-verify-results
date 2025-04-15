@@ -1,12 +1,11 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import TeacherDashboard from '@/components/TeacherDashboard';
 import { getUserRole } from '@/utils/web3Utils';
 import { AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 
 const TeacherPage: React.FC = () => {
@@ -22,7 +21,7 @@ const TeacherPage: React.FC = () => {
           const accounts = await window.ethereum.request({ method: 'eth_accounts' });
           if (accounts.length > 0) {
             const role = getUserRole(accounts[0]);
-            setIsTeacher(role === 'teacher' || role === 'admin'); // Admins can also access teacher pages
+            setIsTeacher(role === 'teacher' || role === 'admin');
           } else {
             setIsTeacher(false);
           }
@@ -62,7 +61,7 @@ const TeacherPage: React.FC = () => {
             <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
             <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
             <p className="mb-6 text-muted-foreground">
-              This area is restricted to teachers only. Please connect with a teacher wallet to access the dashboard.
+              This area is restricted to teachers only. Please connect with a teacher wallet to access this dashboard.
             </p>
             <Button onClick={() => navigate('/')}>
               Return to Home

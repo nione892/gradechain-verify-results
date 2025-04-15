@@ -50,39 +50,57 @@ const CertificateUploader: React.FC<CertificateUploaderProps> = ({ onVerify, isV
     return true;
   };
   
-  const getResultIdFromFileName = (fileName: string, fileSize: number): string | null => {
-    if (fileName.toLowerCase().includes('jnu') || fileName.toLowerCase().includes('kanhaiya')) {
-      return 'JNU-PGDOM-43825';
-    }
+  const getRollNumberFromFileName = (fileName: string, fileSize: number): string | null => {
+    const rollNumberPatterns = [
+      { pattern: /43825/i, rollNumber: '43825' },
+      { pattern: /kanhaiya/i, rollNumber: '43825' },
+      
+      { pattern: /142071/i, rollNumber: '142071' },
+      { pattern: /nayak/i, rollNumber: '142071' },
+      { pattern: /amiya/i, rollNumber: '142071' },
+      
+      { pattern: /56789/i, rollNumber: '56789' },
+      { pattern: /rahul/i, rollNumber: '56789' },
+      
+      { pattern: /20210002/i, rollNumber: 'STU20210002' },
+      { pattern: /maya/i, rollNumber: 'STU20210002' },
+      { pattern: /patel/i, rollNumber: 'STU20210002' },
+      
+      { pattern: /20210003/i, rollNumber: 'STU20210003' },
+      { pattern: /smith/i, rollNumber: 'STU20210003' },
+      { pattern: /john/i, rollNumber: 'STU20210003' },
+      
+      { pattern: /20210001/i, rollNumber: 'STU20210001' }
+    ];
     
-    if (fileName.toLowerCase().includes('ksou') || 
-        fileName.toLowerCase().includes('mba') || 
-        fileName.toLowerCase().includes('amiya') || 
-        fileName.toLowerCase().includes('nayak')) {
-      return 'KSOU-MBA-142071';
-    }
-    
-    if (fileName.toLowerCase().includes('bhu') || fileName.toLowerCase().includes('rahul')) {
-      return 'BHU-CSE-56789';
-    }
-    
-    if (fileName.toLowerCase().includes('patel') || fileName.toLowerCase().includes('maya')) {
-      return 'STU20210002-SEM1-456';
-    }
-    
-    if (fileName.toLowerCase().includes('smith') || fileName.toLowerCase().includes('john')) {
-      return 'STU20210003-SEM3-789';
+    for (const { pattern, rollNumber } of rollNumberPatterns) {
+      if (pattern.test(fileName)) {
+        return rollNumber;
+      }
     }
     
     if (fileSize > 200000 && fileSize < 300000) {
-      return 'KSOU-MBA-142071';
+      return '142071';
     }
     
     if (fileSize > 100000 && fileSize < 200000) {
-      return 'JNU-PGDOM-43825';
+      return '43825';
     }
     
-    return 'STU20210001-SEM2-123';
+    return 'STU20210001';
+  };
+  
+  const getResultIdFromRollNumber = (rollNumber: string): string => {
+    const rollToResultMap: {[key: string]: string} = {
+      '43825': 'JNU-PGDOM-43825',
+      '142071': 'KSOU-MBA-142071',
+      '56789': 'BHU-CSE-56789',
+      'STU20210001': 'STU20210001-SEM2-123',
+      'STU20210002': 'STU20210002-SEM1-456',
+      'STU20210003': 'STU20210003-SEM3-789'
+    };
+    
+    return rollToResultMap[rollNumber] || 'STU20210001-SEM2-123';
   };
   
   const processFile = async (file: File) => {
@@ -93,14 +111,15 @@ const CertificateUploader: React.FC<CertificateUploaderProps> = ({ onVerify, isV
     
     try {
       const documentHash = await calculateDocumentHash(file);
-      const resultId = getResultIdFromFileName(file.name, file.size);
+      const rollNumber = getRollNumberFromFileName(file.name, file.size);
+      const resultId = rollNumber ? getResultIdFromRollNumber(rollNumber) : null;
       
       let documentData: any = {
         fileType: file.type,
         fileName: file.name,
         size: file.size,
         resultId: resultId,
-        timestamp: new Date().toISOString()
+        timestamp: Date.now()
       };
       
       if (file.type.startsWith('image/')) {
@@ -325,10 +344,9 @@ const CertificateUploader: React.FC<CertificateUploaderProps> = ({ onVerify, isV
         </div>
         <ul className="list-disc list-inside space-y-1 pl-2">
           <li>Upload your official academic certificate or marksheet</li>
-          <li>The system will calculate a unique hash of your document</li>
-          <li>The hash will be verified against blockchain records</li>
+          <li>The system will identify the student's roll number from the certificate</li>
+          <li>The document will be verified against blockchain records</li>
           <li>Results show instantly with blockchain verification proof</li>
-          <li>Scan the QR code on your mobile to view full results</li>
         </ul>
       </motion.div>
     </motion.div>
