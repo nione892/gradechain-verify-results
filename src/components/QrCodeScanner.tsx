@@ -2,10 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import { QrReader } from 'react-qr-reader';
 import { Button } from '@/components/ui/button';
-import { X, Camera, RefreshCw, ScanLine, CameraOff, ShieldCheck } from 'lucide-react';
+import { X, Camera, RefreshCw, ScanLine, CameraOff, ShieldCheck, GraduationCap, Award, FileText } from 'lucide-react';
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { toast } from "sonner";
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { getResultById } from '@/utils/demoData';
 
 interface QrCodeScannerProps {
   onScan: (data: string) => void;
@@ -17,6 +18,7 @@ interface DocumentData {
   fileName: string;
   data?: string;
   size?: number;
+  resultId?: string;
 }
 
 const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScan, onClose }) => {
@@ -26,6 +28,7 @@ const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScan, onClose }) => {
   const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
   const [scannedDocument, setScannedDocument] = useState<DocumentData | null>(null);
   const [verificationStatus, setVerificationStatus] = useState<'verified' | 'failed' | null>(null);
+  const [studentResult, setStudentResult] = useState<any>(null);
 
   // Request camera permission on component mount
   useEffect(() => {
@@ -63,8 +66,18 @@ const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScan, onClose }) => {
           
           if (qrData.verify && qrData.documentData) {
             // We have document data and verification hash
-            setScannedDocument(qrData.documentData);
+            const documentData = qrData.documentData;
+            setScannedDocument(documentData);
             setVerificationStatus('verified');
+            
+            // Check if there's an associated result ID
+            if (documentData.resultId) {
+              const resultData = getResultById(documentData.resultId);
+              setStudentResult(resultData);
+            } else if (qrData.resultId) {
+              const resultData = getResultById(qrData.resultId);
+              setStudentResult(resultData);
+            }
             
             toast.success("Certificate verified on blockchain!", {
               description: "This document has been verified as authentic",
@@ -142,37 +155,123 @@ const QrCodeScanner: React.FC<QrCodeScannerProps> = ({ onScan, onClose }) => {
           </Button>
         </div>
         
-        <Card className="mb-4 overflow-hidden">
-          <CardContent className="p-0 relative">
-            {scannedDocument.data ? (
-              // Display the image if we have it
-              <div className="relative">
-                <img 
-                  src={scannedDocument.data} 
-                  alt="Verified Certificate" 
-                  className="w-full object-contain"
-                />
-                <div className="absolute top-0 right-0 bg-green-500 text-white px-3 py-1 rounded-bl-lg font-semibold text-sm flex items-center">
-                  <ShieldCheck className="h-4 w-4 mr-1" />
-                  Verified on Blockchain
+        {studentResult ? (
+          <div className="space-y-4">
+            <Card className="bg-blue-50/50 border-blue-200">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center text-blue-800">
+                  <GraduationCap className="h-4 w-4 mr-2" />
+                  Student Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <p className="font-medium text-muted-foreground">Name:</p>
+                    <p>{studentResult.student.name}</p>
+                  </div>
+                  <div>
+                    <p className="font-medium text-muted-foreground">Roll No:</p>
+                    <p>{studentResult.student.roll}</p>
+                  </div>
+                  <div>
+                    <p className="font-medium text-muted-foreground">Program:</p>
+                    <p>{studentResult.student.program}</p>
+                  </div>
+                  <div>
+                    <p className="font-medium text-muted-foreground">Semester:</p>
+                    <p>{studentResult.semester}</p>
+                  </div>
                 </div>
-              </div>
-            ) : (
-              // Display file info if no image data
-              <div className="p-4 text-center">
-                <h4 className="font-medium">{scannedDocument.fileName}</h4>
-                <p className="text-sm text-muted-foreground">
-                  {scannedDocument.fileType} 
-                  {scannedDocument.size && ` - ${(scannedDocument.size / 1024).toFixed(1)} KB`}
-                </p>
-                <div className="mt-2 inline-block bg-green-500 text-white px-3 py-1 rounded-lg font-semibold text-sm flex items-center">
-                  <ShieldCheck className="h-4 w-4 mr-1" />
-                  Verified on Blockchain
+              </CardContent>
+            </Card>
+            
+            <Card className="mb-4 overflow-hidden">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center">
+                  <Award className="h-4 w-4 mr-2 text-amber-500" />
+                  Academic Results
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="px-2 py-1 text-left">Subject</th>
+                        <th className="px-2 py-1 text-right">Marks</th>
+                        <th className="px-2 py-1 text-right">Grade</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {studentResult.grades.map((grade: any, index: number) => {
+                        const course = studentResult.courses.find((c: any) => c.id === grade.courseId);
+                        return (
+                          <tr key={grade.courseId} className="border-b border-dashed">
+                            <td className="px-2 py-1 text-left">{course?.name || grade.courseId}</td>
+                            <td className="px-2 py-1 text-right">{grade.marks}</td>
+                            <td className="px-2 py-1 text-right font-medium">{grade.grade}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                    <tfoot>
+                      <tr className="bg-muted/30">
+                        <td className="px-2 py-1 font-medium">Result</td>
+                        <td className="px-2 py-1 text-right" colSpan={2}>
+                          <span className="font-medium text-green-600">PASS</span>
+                          {studentResult.gpa && (
+                            <span className="ml-2">GPA: {studentResult.gpa.toFixed(1)}</span>
+                          )}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
                 </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                
+                <div className="flex justify-between items-center mt-4 text-xs text-muted-foreground">
+                  <div>Issue Date: {studentResult.issueDate}</div>
+                  <div className="flex items-center bg-green-100 text-green-800 px-2.5 py-1 rounded-full">
+                    <ShieldCheck className="h-3 w-3 mr-1" />
+                    Blockchain Verified
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        ) : (
+          <Card className="mb-4 overflow-hidden">
+            <CardContent className="p-0 relative">
+              {scannedDocument.data ? (
+                // Display the image if we have it
+                <div className="relative">
+                  <img 
+                    src={scannedDocument.data} 
+                    alt="Verified Certificate" 
+                    className="w-full object-contain"
+                  />
+                  <div className="absolute top-0 right-0 bg-green-500 text-white px-3 py-1 rounded-bl-lg font-semibold text-sm flex items-center">
+                    <ShieldCheck className="h-4 w-4 mr-1" />
+                    Verified on Blockchain
+                  </div>
+                </div>
+              ) : (
+                // Display file info if no image data
+                <div className="p-4 text-center">
+                  <h4 className="font-medium">{scannedDocument.fileName}</h4>
+                  <p className="text-sm text-muted-foreground">
+                    {scannedDocument.fileType} 
+                    {scannedDocument.size && ` - ${(scannedDocument.size / 1024).toFixed(1)} KB`}
+                  </p>
+                  <div className="mt-2 inline-block bg-green-500 text-white px-3 py-1 rounded-lg font-semibold text-sm flex items-center">
+                    <ShieldCheck className="h-4 w-4 mr-1" />
+                    Verified on Blockchain
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
         
         <div className="flex justify-end mt-4">
           <Button onClick={onClose}>

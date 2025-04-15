@@ -119,6 +119,76 @@ export const demoResults: Record<string, ResultData> = {
     gpa: 2.9,
     verificationHash: '0x9d5ea36004851c664b3e3b0dae9d71b4e0069fa7a8d24c6f0d0748f5c4c947d3',
     ipfsHash: 'QmZRcTnYC2CchfYm8yVA6KLB7QmkUQDXpUdSGRMVZuRoRq'
+  },
+  'JNU-PGDOM-43825': {
+    id: 'JNU-PGDOM-43825',
+    student: {
+      id: 'JNU13010402008',
+      name: 'KANHAIYA JAT',
+      roll: '051012013001',
+      program: 'PG Diploma in Operations Management (PGDOM)'
+    },
+    semester: 'December-2013',
+    academicYear: '2013-2014',
+    issueDate: '2014-03-28',
+    courses: [
+      { id: 'PGDOM-101', code: 'PGDOM-101', name: 'Business Environment', credits: 3 },
+      { id: 'PGDOM-102', code: 'PGDOM-102', name: 'Organization Behaviour', credits: 3 },
+      { id: 'PGDOM-103', code: 'PGDOM-103', name: 'Managerial Economics', credits: 3 },
+      { id: 'PGDOM-104', code: 'PGDOM-104', name: 'Production Planning & Control', credits: 3 },
+      { id: 'PGDOM-105', code: 'PGDOM-105', name: 'Total Quality Management', credits: 3 },
+      { id: 'PGDOM-106', code: 'PGDOM-106', name: 'Purchase & Material Management', credits: 3 },
+      { id: 'PGDOM-107', code: 'PGDOM-107', name: 'Inventory Management', credits: 3 },
+      { id: 'PGDOM-108', code: 'PGDOM-108', name: 'Technology Management', credits: 3 },
+      { id: 'PGDOM-109', code: 'PGDOM-109', name: 'Financial Management', credits: 3 },
+      { id: 'PGDOM-110', code: 'PGDOM-110', name: 'Indian Ethics and Management', credits: 3 },
+      { id: 'PGDOM-111', code: 'PGDOM-111', name: 'Fundamentals of Information Technology', credits: 3 }
+    ],
+    grades: [
+      { courseId: 'PGDOM-101', marks: 74, grade: 'P' },
+      { courseId: 'PGDOM-102', marks: 72, grade: 'P' },
+      { courseId: 'PGDOM-103', marks: 55, grade: 'P' },
+      { courseId: 'PGDOM-104', marks: 81, grade: 'P' },
+      { courseId: 'PGDOM-105', marks: 81, grade: 'P' },
+      { courseId: 'PGDOM-106', marks: 72, grade: 'P' },
+      { courseId: 'PGDOM-107', marks: 67, grade: 'P' },
+      { courseId: 'PGDOM-108', marks: 65, grade: 'P' },
+      { courseId: 'PGDOM-109', marks: 59, grade: 'P' },
+      { courseId: 'PGDOM-110', marks: 73, grade: 'P' },
+      { courseId: 'PGDOM-111', marks: 66, grade: 'P' }
+    ],
+    gpa: 3.5,
+    verificationHash: '0xfde5a36004851c664b3e3b0dae9d71b4e0069fa7a8d24c6f0d0748f5c4c9475a',
+    ipfsHash: 'QmZRcTnYC2CchfYm8yVA6KLB7QmkUQDXpUdSGRMVZuRoRa'
+  },
+  'BHU-CSE-56789': {
+    id: 'BHU-CSE-56789',
+    student: {
+      id: 'BHU20220089',
+      name: 'Rahul Kumar',
+      roll: '2022CS089',
+      program: 'B.Tech Computer Science and Engineering'
+    },
+    semester: '4th Semester',
+    academicYear: '2023-2024',
+    issueDate: '2024-01-15',
+    courses: [
+      { id: 'CS401', code: 'CS401', name: 'Algorithm Design', credits: 4 },
+      { id: 'CS402', code: 'CS402', name: 'Database Systems', credits: 4 },
+      { id: 'CS403', code: 'CS403', name: 'Operating Systems', credits: 4 },
+      { id: 'CS404', code: 'CS404', name: 'Computer Networks', credits: 3 },
+      { id: 'HS401', code: 'HS401', name: 'Professional Ethics', credits: 2 }
+    ],
+    grades: [
+      { courseId: 'CS401', marks: 88, grade: 'A' },
+      { courseId: 'CS402', marks: 92, grade: 'A+' },
+      { courseId: 'CS403', marks: 84, grade: 'A-' },
+      { courseId: 'CS404', marks: 78, grade: 'B+' },
+      { courseId: 'HS401', marks: 90, grade: 'A+' }
+    ],
+    gpa: 3.8,
+    verificationHash: '0x1c5ea36004851c664b3e3b0dae9d71b4e0069fa7a8d24c6f0d0748f5c4c947e5',
+    ipfsHash: 'QmXRcTnYC2CchfYm8yVA6KLB7QmkUQDXpUdSGRMVZuRoRx'
   }
 };
 

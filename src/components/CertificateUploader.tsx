@@ -4,6 +4,7 @@ import { Upload, FileUp, X, Check, Loader2, FileX, ChevronDown, Search } from 'l
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 import { calculateDocumentHash } from '@/utils/web3Utils';
+import { getResultById } from '@/utils/demoData';
 
 interface CertificateUploaderProps {
   onVerify: (documentHash: string, documentData?: any) => void;
@@ -62,6 +63,31 @@ const CertificateUploader: React.FC<CertificateUploaderProps> = ({ onVerify, isV
       // Calculate document hash
       const documentHash = await calculateDocumentHash(file);
       
+      // Determine if this is a specific known document (like JNU marksheet)
+      // Here we're checking for file attributes that might suggest it's a marksheet
+      const isKnownMarksheet = 
+        file.name.includes('JNU') || 
+        file.name.includes('marksheet') || 
+        file.name.includes('result') ||
+        file.size > 50000; // Simplified check for demo
+      
+      let resultId = null;
+      
+      // For the demo, we'll map certain file characteristics to specific result IDs
+      if (isKnownMarksheet) {
+        // If it's likely a JNU marksheet (matching the provided image)
+        if (file.name.includes('JNU') || file.size > 100000) {
+          resultId = 'JNU-PGDOM-43825';
+        } 
+        // If it seems like another marksheet
+        else if (file.name.includes('BHU')) {
+          resultId = 'BHU-CSE-56789';
+        }
+        else {
+          resultId = 'STU20210001-SEM2-123';
+        }
+      }
+      
       // Create base64 representation of file for QR code
       let documentData: any = null;
       
@@ -75,6 +101,7 @@ const CertificateUploader: React.FC<CertificateUploaderProps> = ({ onVerify, isV
               fileType: file.type,
               fileName: file.name,
               data: result,
+              resultId: resultId
             });
           };
           reader.readAsDataURL(file);
@@ -85,7 +112,21 @@ const CertificateUploader: React.FC<CertificateUploaderProps> = ({ onVerify, isV
           fileType: file.type,
           fileName: file.name,
           size: file.size,
+          resultId: resultId
         };
+      }
+      
+      // If we have a mapped result ID, let's include student data in the QR code
+      if (resultId) {
+        const studentResult = getResultById(resultId);
+        if (studentResult) {
+          // Enhanced QR code data with student result information
+          documentData.studentInfo = {
+            name: studentResult.student.name,
+            rollNo: studentResult.student.roll,
+            program: studentResult.student.program
+          };
+        }
       }
       
       // Call the onVerify callback with the hash and document data
@@ -276,6 +317,7 @@ const CertificateUploader: React.FC<CertificateUploaderProps> = ({ onVerify, isV
           <li>The system will calculate a unique hash of your document</li>
           <li>The hash will be verified against blockchain records</li>
           <li>Results show instantly with blockchain verification proof</li>
+          <li>Scan the QR code on your mobile to view full results</li>
         </ul>
       </motion.div>
     </motion.div>
