@@ -1,13 +1,15 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileText, GraduationCap, Download, Check, FileCheck, Shield } from "lucide-react";
 import { getStudentResultsByWallet } from '@/utils/web3Utils';
-import { getResultById } from '@/utils/demoData';
+import { getResultById, ResultData as FullResultData } from '@/utils/demoData';
 import ResultCard from './ResultCard';
 import { BlockchainModeContext } from './Header';
 
+// Define a simplified ResultData interface for use in the StudentDashboard
 export interface ResultData {
   id: string;
   studentId: string;
@@ -37,11 +39,11 @@ const StudentDashboard: React.FC = () => {
             const result = getResultById(id);
             return {
               id,
-              studentId: result?.studentId || "S-12345",
+              studentId: result?.student?.id || "S-12345",
               studentName: "Manvith", // Always set to Manvith for the demo
-              course: result?.course || "Computer Science",
-              grade: result?.grade || "A",
-              date: result?.date || new Date().toLocaleDateString(),
+              course: result?.courses?.[0]?.name || "Computer Science",
+              grade: result?.grades?.[0]?.grade || "A",
+              date: result?.issueDate || new Date().toLocaleDateString(),
               verified: true
             };
           });
