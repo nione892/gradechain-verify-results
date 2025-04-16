@@ -156,7 +156,7 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
     
     setLastVerifiedDocumentData(null);
     
-    const verifyEvent = new FormEvent('submit', { cancelable: true });
+    const verifyEvent = new React.FormEvent('submit', { cancelable: true });
     document.getElementById('verification-form')?.dispatchEvent(verifyEvent);
   };
 
@@ -184,7 +184,7 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
         
         setLastVerifiedDocumentData(null);
         
-        const verifyEvent = new FormEvent('submit', { cancelable: true });
+        const verifyEvent = new React.FormEvent('submit', { cancelable: true });
         document.getElementById('verification-form')?.dispatchEvent(verifyEvent);
       }
     }
