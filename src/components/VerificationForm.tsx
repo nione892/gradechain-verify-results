@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Search, ArrowRight, ShieldCheck, FileDigit, AlertTriangle, FileUp, Upload, QrCode } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -189,7 +190,7 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
     setResultId(hash);
     setActiveTab('id');
     
-    const parsedData = {} as DocumentData;
+    const parsedData: DocumentData = { verificationHash: hash };
     setLastVerifiedDocumentData(parsedData);
     
     setTimeout(() => {
