@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Search, ArrowRight, ShieldCheck, FileDigit, AlertTriangle, FileUp, Upload, QrCode } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -205,7 +204,6 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
     setShowQrScanner(false);
     
     try {
-      // Explicitly type the parsed data as DocumentData
       const parsedData = JSON.parse(qrData) as DocumentData;
       
       if (parsedData.verify) {
