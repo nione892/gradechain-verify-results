@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Search, ArrowRight, ShieldCheck, FileDigit, AlertTriangle, FileUp, Upload, QrCode } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -23,7 +22,7 @@ interface DocumentData {
   resultId?: string;
   verificationHash?: string;
   verify?: string;
-  documentData?: DocumentData;
+  documentData?: Document<any>;
   [key: string]: any;
 }
 

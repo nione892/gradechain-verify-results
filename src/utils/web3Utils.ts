@@ -113,25 +113,31 @@ export const uploadResult = async (resultId: string, resultData: any): Promise<{
   }
 };
 
+// Define the two allowed verification hashes
+const ALLOWED_HASHES = [
+  '0x123456789abcdef123456789abcdef123456789abcdef123456789abcdef1234',
+  '0x987654321fedcba987654321fedcba987654321fedcba987654321fedcba9876'
+];
+
 // Verify result hash - improved to return student name for specific hash
 export const verifyResultHash = async (hash: string): Promise<{isVerified: boolean; resultId?: string; message?: string; studentName?: string}> => {
   try {
-    // In a real implementation, this would call the smart contract's verifyResult function
+    // Only allow verification for the two specific hashes
     console.log(`Verifying result hash: ${hash}`);
     
-    // Always return verified for our demo addresses to ensure verification works
-    const isVerified = true;
+    // Check if the hash is in our allowed list
+    const isVerified = ALLOWED_HASHES.includes(hash);
     
     if (isVerified) {
       return { 
         isVerified: true, 
         resultId: hash.length > 10 ? hash.substring(0, 8) : hash, // Mock resultId from hash
-        studentName: "Manvith" // Add student name for the verified result
+        studentName: hash === ALLOWED_HASHES[0] ? "Manvith" : "Rahul" // Different names for different hashes
       };
     } else {
       return { 
         isVerified: false,
-        message: "Hash not found on blockchain" 
+        message: "Hash not found on blockchain or not authorized" 
       };
     }
   } catch (error) {
@@ -140,24 +146,24 @@ export const verifyResultHash = async (hash: string): Promise<{isVerified: boole
   }
 };
 
-// Verify document hash
+// Verify document hash - restrict to the same two specific hashes
 export const verifyDocumentHash = async (hash: string): Promise<{isVerified: boolean; resultId?: string; message?: string}> => {
   try {
-    // In a real implementation, this would call the smart contract's verifyDocument function
+    // Only verify documents with the allowed hashes
     console.log(`Verifying document hash: ${hash}`);
     
-    // For demo purposes, simulate a successful verification most of the time
-    const isVerified = Math.random() > 0.3;
+    // Check if the hash is in our allowed list
+    const isVerified = ALLOWED_HASHES.includes(hash);
     
     if (isVerified) {
       return { 
         isVerified: true, 
-        resultId: `CERT-${Math.floor(Math.random() * 10000)}`, // Mock resultId
+        resultId: hash === ALLOWED_HASHES[0] ? "RESULT-1001" : "RESULT-1002", // Different result IDs for different hashes
       };
     } else {
       return { 
         isVerified: false,
-        message: "Document hash not found on blockchain" 
+        message: "Document hash not found on blockchain or not authorized" 
       };
     }
   } catch (error) {
