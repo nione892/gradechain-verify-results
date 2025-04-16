@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Search, ArrowRight, ShieldCheck, FileDigit, AlertTriangle, FileUp, Upload, QrCode } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -70,16 +69,11 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
             : "Result has been verified in testing mode",
         });
         
-        // Find the result by hash or ID
         let foundResult = null;
         
-        // First check if there's a direct match for the ID
         foundResult = getResultById(resultId);
         
-        // If not found, try to find a result with matching verification hash
         if (!foundResult) {
-          // This is a simplified approach. In a real app, you would query the blockchain
-          // or backend API to find the result associated with this hash
           const allResults = Object.values(require('@/utils/demoData').demoResults);
           foundResult = allResults.find(r => r.verificationHash === resultId);
         }
@@ -195,7 +189,8 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
     setResultId(hash);
     setActiveTab('id');
     
-    setLastVerifiedDocumentData(null);
+    const parsedData = {} as DocumentData;
+    setLastVerifiedDocumentData(parsedData);
     
     setTimeout(() => {
       const form = document.getElementById('verification-form') as HTMLFormElement;
@@ -209,13 +204,13 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
     setShowQrScanner(false);
     
     try {
-      const parsedData = JSON.parse(qrData);
+      const parsedData = JSON.parse(qrData) as DocumentData;
       
       if (parsedData.verify) {
         handleVerificationFromHash(parsedData.verify);
         
         if (parsedData.documentData) {
-          setLastVerifiedDocumentData(parsedData.documentData);
+          setLastVerifiedDocumentData(parsedData.documentData as DocumentData);
         }
       }
     } catch (e) {
@@ -239,7 +234,6 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
     }
   };
 
-  // If we have full result data, show the entire result card
   if (fullResultData) {
     return (
       <div className="w-full max-w-4xl mx-auto">
