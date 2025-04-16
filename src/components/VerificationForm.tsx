@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Search, ArrowRight, ShieldCheck, FileDigit, AlertTriangle, FileUp, Upload, QrCode } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -21,6 +22,8 @@ interface VerificationFormProps {
 interface DocumentData {
   resultId?: string;
   verificationHash?: string;
+  verify?: string;
+  documentData?: DocumentData;
   [key: string]: any;
 }
 
@@ -210,7 +213,7 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
         handleVerificationFromHash(parsedData.verify);
         
         if (parsedData.documentData) {
-          setLastVerifiedDocumentData(parsedData.documentData as DocumentData);
+          setLastVerifiedDocumentData(parsedData.documentData);
         }
       }
     } catch (e) {
