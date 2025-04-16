@@ -16,7 +16,33 @@ export const deployContract = async (): Promise<string | null> => {
     }
     
     const provider = new ethers.providers.Web3Provider(window.ethereum);
+    
+    // Request accounts from MetaMask
+    await window.ethereum.request({ method: 'eth_requestAccounts' });
+    
     const signer = provider.getSigner();
+    
+    // Check if we're on a testnet
+    const network = await provider.getNetwork();
+    console.log("Deploying on network:", network.name, "Chain ID:", network.chainId);
+    
+    // Define testnets we support
+    const supportedTestnets = [
+      { id: 5, name: 'goerli' }, 
+      { id: 11155111, name: 'sepolia' },
+      { id: 80001, name: 'mumbai' }
+    ];
+    
+    // Check if current network is a supported testnet
+    const isTestnet = supportedTestnets.some(net => net.id === network.chainId);
+    
+    if (!isTestnet) {
+      console.warn("Warning: Deploying on network that may not be a testnet.");
+    }
+    
+    // Get gas price
+    const gasPrice = await provider.getGasPrice();
+    console.log("Current gas price:", ethers.utils.formatUnits(gasPrice, "gwei"), "gwei");
     
     // Deploy the contract
     const factory = new ethers.ContractFactory(
@@ -26,9 +52,14 @@ export const deployContract = async (): Promise<string | null> => {
     );
     
     console.log('Deploying GradeChain contract...');
-    const contract = await factory.deploy();
+    
+    // Use 20% higher gas price to ensure transaction goes through
+    const contract = await factory.deploy({
+      gasPrice: gasPrice.mul(120).div(100)
+    });
     
     // Wait for deployment to finish
+    console.log('Waiting for transaction to be mined...');
     await contract.deployed();
     
     console.log('Contract deployed at:', contract.address);
@@ -40,12 +71,35 @@ export const deployContract = async (): Promise<string | null> => {
 };
 
 export const getContractAddress = (): string => {
-  // In a real app, this would be stored in a persistent storage like localStorage
-  // For demo, we'll return a hardcoded address if the contract was already deployed
   const savedAddress = localStorage.getItem('gradeChainContractAddress');
   return savedAddress || '';
 };
 
 export const saveContractAddress = (address: string): void => {
   localStorage.setItem('gradeChainContractAddress', address);
+};
+
+export const getDeployedContractNetwork = async (): Promise<string> => {
+  try {
+    if (!window.ethereum) return '';
+    
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const network = await provider.getNetwork();
+    
+    // Map network IDs to friendly names
+    const networkNames: Record<number, string> = {
+      1: 'Ethereum Mainnet',
+      5: 'Goerli Testnet',
+      11155111: 'Sepolia Testnet',
+      137: 'Polygon Mainnet',
+      80001: 'Polygon Mumbai',
+      56: 'BSC Mainnet',
+      97: 'BSC Testnet'
+    };
+    
+    return networkNames[network.chainId] || `Chain ID: ${network.chainId}`;
+  } catch (error) {
+    console.error('Error getting network:', error);
+    return '';
+  }
 };

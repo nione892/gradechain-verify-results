@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useContext } from 'react';
 import { Button } from '@/components/ui/button';
 import { deployContract, getContractAddress, saveContractAddress } from '@/utils/contractDeployer';
@@ -8,6 +9,7 @@ import { BlockchainModeContext } from './Header';
 const ContractDeployment: React.FC = () => {
   const [contractAddress, setContractAddress] = useState<string>('');
   const [isDeploying, setIsDeploying] = useState<boolean>(false);
+  const [networkInfo, setNetworkInfo] = useState<string>('');
   const { toast } = useToast();
   const { isRealBlockchainMode } = useContext(BlockchainModeContext);
 
@@ -16,7 +18,40 @@ const ContractDeployment: React.FC = () => {
     if (savedAddress) {
       setContractAddress(savedAddress);
     }
-  }, []);
+    
+    // Check current network when in real blockchain mode
+    if (isRealBlockchainMode && window.ethereum) {
+      checkNetwork();
+    }
+  }, [isRealBlockchainMode]);
+  
+  const checkNetwork = async () => {
+    try {
+      if (window.ethereum) {
+        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+        
+        // Map chain IDs to network names
+        const networks: Record<string, string> = {
+          '0x1': 'Ethereum Mainnet',
+          '0x5': 'Goerli Testnet',
+          '0xaa36a7': 'Sepolia Testnet',
+          '0x13881': 'Polygon Mumbai',
+          '0x89': 'Polygon Mainnet'
+        };
+        
+        const networkName = networks[chainId] || `Unknown Network (Chain ID: ${chainId})`;
+        setNetworkInfo(networkName);
+        
+        // Listen for chain changes
+        window.ethereum.on('chainChanged', (newChainId: string) => {
+          const newNetworkName = networks[newChainId] || `Unknown Network (Chain ID: ${newChainId})`;
+          setNetworkInfo(newNetworkName);
+        });
+      }
+    } catch (error) {
+      console.error('Error checking network:', error);
+    }
+  };
 
   const handleDeploy = async () => {
     setIsDeploying(true);
@@ -44,7 +79,23 @@ const ContractDeployment: React.FC = () => {
           )
         });
       } else {
+        // Check if MetaMask is installed
+        if (!window.ethereum) {
+          toast({
+            variant: "destructive",
+            title: "MetaMask Required",
+            description: "Please install MetaMask to deploy contracts to the blockchain."
+          });
+          setIsDeploying(false);
+          return;
+        }
+        
         // Real blockchain deployment
+        toast({
+          title: "Deploying Contract",
+          description: "Initiating transaction to deploy GradeChain contract to " + networkInfo,
+        });
+        
         const address = await deployContract();
         if (address) {
           setContractAddress(address);
@@ -54,7 +105,7 @@ const ContractDeployment: React.FC = () => {
             description: (
               <div className="flex items-center">
                 <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                <span>GradeChain contract deployed successfully to the blockchain!</span>
+                <span>GradeChain contract deployed successfully to {networkInfo}!</span>
               </div>
             )
           });
@@ -65,7 +116,7 @@ const ContractDeployment: React.FC = () => {
             description: (
               <div className="flex items-center">
                 <AlertTriangle className="h-4 w-4 mr-2" />
-                <span>Failed to deploy the contract. Please try again.</span>
+                <span>Failed to deploy the contract. Please try again and check MetaMask.</span>
               </div>
             )
           });
@@ -98,12 +149,12 @@ const ContractDeployment: React.FC = () => {
   const getStatusMessage = () => {
     if (contractAddress) {
       return isRealBlockchainMode
-        ? "Your contract is deployed to the blockchain and active."
+        ? `Your contract is deployed to ${networkInfo || 'the blockchain'} and active.`
         : "Using a simulated contract (Testing Mode active)";
     }
     
     return isRealBlockchainMode
-      ? "Deploy your contract to the blockchain to enable verification."
+      ? `Deploy your contract to ${networkInfo || 'the blockchain'} to enable verification.`
       : "Create a simulated contract for testing without blockchain transactions.";
   };
 
@@ -119,7 +170,7 @@ const ContractDeployment: React.FC = () => {
           <Shield className="h-4 w-4 mr-2" />
           <span>
             {isRealBlockchainMode 
-              ? "Blockchain Deployment Mode: Transactions will be sent to the blockchain network" 
+              ? `Deploy Mode: Transactions will be sent to ${networkInfo || 'the blockchain network'}` 
               : "Testing Mode: No actual blockchain transactions will occur"}
           </span>
         </div>

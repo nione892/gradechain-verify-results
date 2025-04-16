@@ -8,6 +8,7 @@ import { getUserRole, UserRole } from '@/utils/web3Utils';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { getDeployedContractNetwork } from '@/utils/contractDeployer';
 
 // Create a context for blockchain mode
 export const BlockchainModeContext = React.createContext({
@@ -18,6 +19,7 @@ export const BlockchainModeContext = React.createContext({
 const Header: React.FC = () => {
   const [userRole, setUserRole] = useState<UserRole>(null);
   const [isRealBlockchainMode, setIsRealBlockchainMode] = useState(false);
+  const [networkName, setNetworkName] = useState<string>('');
   const location = useLocation();
   const { toast } = useToast();
 
@@ -47,23 +49,65 @@ const Header: React.FC = () => {
           setUserRole(null);
         }
       });
+      
+      // Listen for chain/network changes
+      window.ethereum.on('chainChanged', () => {
+        updateNetworkInfo();
+      });
     }
 
     return () => {
       // Cleanup listeners
       if (window.ethereum && window.ethereum.removeListener) {
         window.ethereum.removeListener('accountsChanged', () => {});
+        window.ethereum.removeListener('chainChanged', () => {});
       }
     };
   }, []);
+  
+  // Update network information when mode changes
+  useEffect(() => {
+    if (isRealBlockchainMode) {
+      updateNetworkInfo();
+    }
+  }, [isRealBlockchainMode]);
+  
+  const updateNetworkInfo = async () => {
+    if (window.ethereum) {
+      try {
+        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+        const networks: Record<string, string> = {
+          '0x1': 'Ethereum Mainnet',
+          '0x5': 'Goerli Testnet',
+          '0xaa36a7': 'Sepolia Testnet',
+          '0x13881': 'Mumbai Testnet',
+          '0x89': 'Polygon Mainnet'
+        };
+        
+        const name = networks[chainId] || `Chain ID: ${parseInt(chainId, 16)}`;
+        setNetworkName(name);
+      } catch (error) {
+        console.error('Error getting network:', error);
+      }
+    } else {
+      setNetworkName('');
+    }
+  };
 
   const toggleBlockchainMode = () => {
     const newMode = !isRealBlockchainMode;
     setIsRealBlockchainMode(newMode);
+    
+    if (newMode && window.ethereum) {
+      updateNetworkInfo();
+    }
+    
     toast({
-      title: newMode ? "Blockchain Deployment Mode" : "Local Testing Mode",
+      title: newMode ? "Blockchain Deploy Mode" : "Local Testing Mode",
       description: newMode 
-        ? "Transactions will be sent to the Ethereum Sepolia testnet" 
+        ? (networkName 
+            ? `Transactions will be sent to ${networkName}` 
+            : "Transactions will be sent to the connected blockchain network")
         : "Transactions will be simulated locally without blockchain interaction",
     });
   };
@@ -83,7 +127,9 @@ const Header: React.FC = () => {
           <div className="flex items-center space-x-4">
             <div className="flex items-center mr-4 bg-muted/50 p-2 rounded-lg shadow-sm">
               <Label htmlFor="blockchain-mode" className={`text-xs mr-2 ${isRealBlockchainMode ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
-                {isRealBlockchainMode ? 'Deploy Mode' : 'Testing Mode'}
+                {isRealBlockchainMode 
+                  ? `Deploy Mode${networkName ? ` (${networkName})` : ''}` 
+                  : 'Testing Mode'}
               </Label>
               <Switch
                 id="blockchain-mode"
