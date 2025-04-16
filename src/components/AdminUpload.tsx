@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -56,12 +55,12 @@ const AdminUpload: React.FC = () => {
       
       // Calculate hash for later display
       const hash = calculateResultHash(resultData);
+      setResultHash(hash);
       
       // Upload to blockchain
       const success = await uploadResult(studentId, resultData);
       
-      if (success) {
-        setResultHash(hash);
+      if (success.success) {
         toast({
           title: "Result Uploaded",
           description: isRealBlockchainMode
@@ -125,6 +124,7 @@ const AdminUpload: React.FC = () => {
     try {
       // Calculate document hash
       const hash = await calculateDocumentHash(certificateFile);
+      setCertificateHash(hash);
       
       // Create certificate data
       const certificateData = {
@@ -140,9 +140,7 @@ const AdminUpload: React.FC = () => {
       // Upload to blockchain
       const success = await uploadResult(studentId, certificateData);
       
-      if (success) {
-        setCertificateHash(hash);
-        
+      if (success.success) {
         // Generate verification URL for QR code
         const baseUrl = window.location.origin;
         const verificationUrl = `${baseUrl}/?verify=${hash}`;

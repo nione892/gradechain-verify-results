@@ -70,17 +70,17 @@ const TeacherDashboard: React.FC = () => {
     setResultHash(null);
     
     try {
-      // Calculate result hash
+      // Calculate and set the result hash
       const hash = calculateResultHash({
         ...data,
         timestamp: new Date().toISOString(),
       });
+      setResultHash(hash);
       
       // Upload to blockchain
-      const success = await uploadResult(data.studentId, data);
+      const uploadResult = await uploadResult(data.studentId, data);
       
-      if (success) {
-        setResultHash(hash);
+      if (uploadResult.success) {
         toast({
           title: "Result Uploaded",
           description: (

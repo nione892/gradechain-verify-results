@@ -45,7 +45,7 @@ export const connectWallet = async (): Promise<string | null> => {
   }
 };
 
-// Check if registerTeacher is already defined, if not, adding it
+// Register teacher
 export const registerTeacher = async (address: string, name: string) => {
   try {
     console.log(`Registering teacher: ${name} with address ${address}`);
@@ -69,8 +69,8 @@ export const registerTeacher = async (address: string, name: string) => {
   }
 };
 
-// Calculate result hash
-export const calculateResultHash = async (resultData: any): Promise<string> => {
+// Calculate result hash - Update to accept both string and object
+export const calculateResultHash = (resultData: any): string => {
   // In a real implementation, this would use a cryptographic hash function
   // For demo purposes, we'll just create a mock hash
   const mockHash = '0x' + Array(64).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join('');
@@ -85,8 +85,8 @@ export const calculateDocumentHash = async (file: File): Promise<string> => {
   return mockHash;
 };
 
-// Upload result to blockchain
-export const uploadResult = async (resultId: string, resultHash: string): Promise<{success: boolean; message: string}> => {
+// Upload result to blockchain - Update to accept both string and object
+export const uploadResult = async (resultId: string, resultData: any): Promise<{success: boolean; message: string}> => {
   try {
     if (window.ethereum) {
       const accounts = await window.ethereum.request({ method: 'eth_accounts' });
@@ -95,7 +95,7 @@ export const uploadResult = async (resultId: string, resultHash: string): Promis
       }
       
       // In a real implementation, this would call the smart contract's uploadResult function
-      console.log(`Uploading result: ${resultId} with hash ${resultHash}`);
+      console.log(`Uploading result: ${resultId} with data`, resultData);
       
       // Simulate success
       return { success: true, message: "Result uploaded to blockchain" };
@@ -175,9 +175,9 @@ export const processVerificationUrl = (url: string): string | null => {
 };
 
 // Get student results by wallet
-export const getStudentResultsByWallet = async (address: string): Promise<string[]> => {
+export const getStudentResultsByWallet = async (address?: string): Promise<string[]> => {
   // In a real implementation, this would query the blockchain for results associated with this wallet
-  console.log(`Getting results for student wallet: ${address}`);
+  console.log(`Getting results for student wallet: ${address || "current wallet"}`);
   
   // For demo purposes, return some mock result IDs
   return ['RESULT-1001', 'RESULT-1002', 'RESULT-1003'].filter(() => Math.random() > 0.3);

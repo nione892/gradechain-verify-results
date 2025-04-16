@@ -36,7 +36,7 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
     }
   }, []);
 
-  const handleVerify = async (event: React.FormEvent) => {
+  const handleVerify = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSearchError('');
     
@@ -157,9 +157,13 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
     
     setLastVerifiedDocumentData(null);
     
-    // Create a synthetic form submit event
-    const submitEvent = new Event('submit', { cancelable: true }) as unknown as React.FormEvent;
-    document.getElementById('verification-form')?.dispatchEvent(submitEvent);
+    // Create a synthetic form submit event and call handleVerify directly
+    setTimeout(() => {
+      const form = document.getElementById('verification-form') as HTMLFormElement;
+      if (form) {
+        handleVerify(new Event('submit') as unknown as React.FormEvent<HTMLFormElement>);
+      }
+    }, 100);
   };
 
   const handleQrCodeScan = async (qrData: string) => {
@@ -186,9 +190,13 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
         
         setLastVerifiedDocumentData(null);
         
-        // Create a synthetic form submit event
-        const submitEvent = new Event('submit', { cancelable: true }) as unknown as React.FormEvent;
-        document.getElementById('verification-form')?.dispatchEvent(submitEvent);
+        // Handle using proper form event type
+        setTimeout(() => {
+          const form = document.getElementById('verification-form') as HTMLFormElement;
+          if (form) {
+            handleVerify(new Event('submit') as unknown as React.FormEvent<HTMLFormElement>);
+          }
+        }, 100);
       }
     }
   };

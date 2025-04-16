@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -83,14 +84,14 @@ const CertificateUploadForm: React.FC = () => {
         timestamp: new Date().toISOString(),
       };
       
+      // Calculate hash first
       const hash = calculateResultHash(certificateData);
+      setCertificateHash(hash);
       
       // Upload to blockchain or simulate in demo mode
-      const success = await uploadResult(data.studentId, certificateData);
+      const uploadSuccess = await uploadResult(data.studentId, certificateData);
       
-      if (success) {
-        setCertificateHash(hash);
-        
+      if (uploadSuccess.success) {
         // Generate verification URL for QR code
         const baseUrl = window.location.origin;
         const verificationUrl = `${baseUrl}/?verify=${hash}`;

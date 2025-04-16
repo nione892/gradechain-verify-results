@@ -10,7 +10,7 @@ import {
   TrendingUp, TrendingDown, ChevronDown, BarChart3
 } from 'lucide-react';
 import ResultCard from './ResultCard';
-import { ResultData } from '@/utils/demoData';
+import { ResultData, getResultById } from '@/utils/demoData';
 import { getStudentResultsByWallet } from '@/utils/web3Utils';
 import { 
   ChartContainer,
@@ -53,8 +53,19 @@ const StudentDashboard: React.FC = () => {
           }
         }
         
-        const studentResults = await getStudentResultsByWallet();
-        setResults(studentResults);
+        // Get student results using wallet address
+        const studentResultIds = await getStudentResultsByWallet(walletAddress || undefined);
+        
+        // Convert result IDs to ResultData objects
+        const fetchedResults: ResultData[] = [];
+        for (const resultId of studentResultIds) {
+          const result = getResultById(resultId);
+          if (result) {
+            fetchedResults.push(result);
+          }
+        }
+        
+        setResults(fetchedResults);
       } catch (error) {
         console.error("Error loading student results:", error);
         toast({
