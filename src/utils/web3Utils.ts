@@ -406,6 +406,44 @@ export const uploadCertificateToBlockchain = async (fileHash: string, studentId:
   }
 };
 
+// Add the missing uploadResult function that's being imported
+export const uploadResult = async (studentId: string, resultData: any): Promise<boolean> => {
+  try {
+    const provider = getProvider();
+    if (!provider) return false;
+    
+    // Get the current blockchain mode from the BlockchainModeContext
+    // If we can't determine it, default to testing mode (false)
+    let isRealBlockchainMode = false;
+    
+    // Check if window.ethereum exists as a simple way to determine if we're in real blockchain mode
+    if (window.ethereum) {
+      // For more precise control, we'd need to pass this from the calling component
+      // But for now we'll infer based on ethereum object availability
+      isRealBlockchainMode = true;
+    }
+    
+    if (resultData.type === 'certificate') {
+      // If it's a certificate upload, use the certificate upload function
+      return await uploadCertificateToBlockchain(
+        calculateResultHash(resultData),
+        studentId,
+        isRealBlockchainMode
+      );
+    } else {
+      // Otherwise it's a standard result upload
+      return await uploadResultToBlockchain(
+        studentId,
+        resultData,
+        isRealBlockchainMode
+      );
+    }
+  } catch (error) {
+    console.error('Error in uploadResult:', error);
+    return false;
+  }
+};
+
 // For demo purposes, this function will simulate verification or use the contract if deployed
 export const verifyResultHash = async (resultId: string): Promise<VerificationResult> => {
   try {

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useContext } from 'react';
 import { Button } from '@/components/ui/button';
 import { deployContract, getContractAddress, saveContractAddress } from '@/utils/contractDeployer';
@@ -24,7 +23,7 @@ const ContractDeployment: React.FC = () => {
     try {
       if (!isRealBlockchainMode) {
         toast({
-          variant: "warning",
+          variant: "default",
           title: "Testing Mode Active",
           description: "Please toggle to Deploy Mode in the header to deploy real contracts to the blockchain.",
         });
