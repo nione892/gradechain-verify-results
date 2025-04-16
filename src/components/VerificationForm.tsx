@@ -205,6 +205,7 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
     setShowQrScanner(false);
     
     try {
+      // Explicitly type the parsed data as DocumentData
       const parsedData = JSON.parse(qrData) as DocumentData;
       
       if (parsedData.verify) {
