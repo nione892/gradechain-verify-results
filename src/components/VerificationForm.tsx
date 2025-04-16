@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Search, ArrowRight, ShieldCheck, FileDigit, AlertTriangle, FileUp, Upload, QrCode } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -156,8 +157,9 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
     
     setLastVerifiedDocumentData(null);
     
-    const verifyEvent = new React.FormEvent('submit', { cancelable: true });
-    document.getElementById('verification-form')?.dispatchEvent(verifyEvent);
+    // Create a synthetic form submit event
+    const submitEvent = new Event('submit', { cancelable: true }) as unknown as React.FormEvent;
+    document.getElementById('verification-form')?.dispatchEvent(submitEvent);
   };
 
   const handleQrCodeScan = async (qrData: string) => {
@@ -184,8 +186,9 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
         
         setLastVerifiedDocumentData(null);
         
-        const verifyEvent = new React.FormEvent('submit', { cancelable: true });
-        document.getElementById('verification-form')?.dispatchEvent(verifyEvent);
+        // Create a synthetic form submit event
+        const submitEvent = new Event('submit', { cancelable: true }) as unknown as React.FormEvent;
+        document.getElementById('verification-form')?.dispatchEvent(submitEvent);
       }
     }
   };
