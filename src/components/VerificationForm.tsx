@@ -21,6 +21,7 @@ interface VerificationFormProps {
 
 interface DocumentData {
   resultId?: string;
+  verificationHash?: string;
   [key: string]: any;
 }
 
