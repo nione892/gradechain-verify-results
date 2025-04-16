@@ -1,9 +1,10 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useContext } from 'react';
 import { Upload, FileUp, X, Check, Loader2, FileX, ChevronDown, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 import { calculateDocumentHash } from '@/utils/web3Utils';
 import { getResultById } from '@/utils/demoData';
+import { BlockchainModeContext } from '@/components/Header';
 
 interface CertificateUploaderProps {
   onVerify: (documentHash: string, documentData?: any) => void;
@@ -16,6 +17,7 @@ const CertificateUploader: React.FC<CertificateUploaderProps> = ({ onVerify, isV
   const [isDragging, setIsDragging] = useState(false);
   const [isCalculatingHash, setIsCalculatingHash] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { isRealBlockchainMode } = useContext(BlockchainModeContext);
   
   const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -51,6 +53,10 @@ const CertificateUploader: React.FC<CertificateUploaderProps> = ({ onVerify, isV
   };
   
   const getRollNumberFromFileName = (fileName: string, fileSize: number): string | null => {
+    if (isRealBlockchainMode) {
+      return null;
+    }
+    
     const rollNumberPatterns = [
       { pattern: /43825/i, rollNumber: '43825' },
       { pattern: /kanhaiya/i, rollNumber: '43825' },
@@ -111,16 +117,48 @@ const CertificateUploader: React.FC<CertificateUploaderProps> = ({ onVerify, isV
     
     try {
       const documentHash = await calculateDocumentHash(file);
-      const rollNumber = getRollNumberFromFileName(file.name, file.size);
-      const resultId = rollNumber ? getResultIdFromRollNumber(rollNumber) : null;
+      console.log('Document hash calculated:', documentHash);
       
       let documentData: any = {
         fileType: file.type,
         fileName: file.name,
         size: file.size,
-        resultId: resultId,
         timestamp: Date.now()
       };
+      
+      if (!isRealBlockchainMode) {
+        const rollNumber = getRollNumberFromFileName(file.name, file.size);
+        const resultId = rollNumber ? getResultIdFromRollNumber(rollNumber) : null;
+        documentData.resultId = resultId;
+        
+        if (resultId) {
+          const studentResult = getResultById(resultId);
+          if (studentResult) {
+            documentData.studentInfo = {
+              name: studentResult.student.name,
+              rollNo: studentResult.student.roll,
+              program: studentResult.student.program,
+              semester: studentResult.semester,
+              academicYear: studentResult.academicYear
+            };
+            
+            if (studentResult.resultImageUrl) {
+              documentData.resultImageUrl = studentResult.resultImageUrl;
+            }
+            
+            documentData.grades = studentResult.grades.map((grade: any) => {
+              const course = studentResult.courses.find((c: any) => c.id === grade.courseId);
+              return {
+                course: course?.name || grade.courseId,
+                marks: grade.marks,
+                grade: grade.grade
+              };
+            });
+            
+            documentData.gpa = studentResult.gpa;
+          }
+        }
+      }
       
       if (file.type.startsWith('image/')) {
         documentData.data = await new Promise((resolve) => {
@@ -130,34 +168,6 @@ const CertificateUploader: React.FC<CertificateUploaderProps> = ({ onVerify, isV
           };
           reader.readAsDataURL(file);
         });
-      }
-      
-      if (resultId) {
-        const studentResult = getResultById(resultId);
-        if (studentResult) {
-          documentData.studentInfo = {
-            name: studentResult.student.name,
-            rollNo: studentResult.student.roll,
-            program: studentResult.student.program,
-            semester: studentResult.semester,
-            academicYear: studentResult.academicYear
-          };
-          
-          if (studentResult.resultImageUrl) {
-            documentData.resultImageUrl = studentResult.resultImageUrl;
-          }
-          
-          documentData.grades = studentResult.grades.map((grade: any) => {
-            const course = studentResult.courses.find((c: any) => c.id === grade.courseId);
-            return {
-              course: course?.name || grade.courseId,
-              marks: grade.marks,
-              grade: grade.grade
-            };
-          });
-          
-          documentData.gpa = studentResult.gpa;
-        }
       }
       
       if (documentHash) {

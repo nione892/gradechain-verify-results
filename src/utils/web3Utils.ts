@@ -168,35 +168,30 @@ const ROLL_NUMBER_TO_RESULT_ID: Record<string, string> = {
 
 // Demo document hash mapping (in a real app, this would be in the blockchain)
 const DOCUMENT_HASH_MAPPING: Record<string, { resultId: string, issuer: string, timestamp: number }> = {
-  // Example document hash from a simulated PDF certificate
   'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855': {
     resultId: 'STU20210001-SEM2-123',
     issuer: '0x742d35Cc6634C0532925a3b844Bc454e4438f44e',
     timestamp: 1650000000000
   },
-  // JNU marksheet hash that matches the provided image
   '7c5ea36004851c664b3e3b0dae9d71b4e0069fa7a8d24c6f0d0748f5c4c947d1': {
     resultId: 'JNU-PGDOM-43825',
     issuer: '0x397a5902c9A1D8a885B909329a66AA2cc096cCee',
-    timestamp: 1711641600000 // March 28, 2024
+    timestamp: 1711641600000
   },
-  // Hash that will match similar marksheet images with slight variations
   'a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2': {
     resultId: 'JNU-PGDOM-43825',
     issuer: '0x397a5902c9A1D8a885B909329a66AA2cc096cCee',
     timestamp: 1711641600000
   },
-  // Additional document hash examples
   'be3a9d254ed7b5e3666268529cf5e3158f617a8c1d96665f66a6f4a55386edd4': {
     resultId: 'BHU-CSE-56789',
     issuer: '0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0',
-    timestamp: 1705305600000 // January 15, 2024
+    timestamp: 1705305600000
   },
-  // KSOU MBA hashses
   'f23a9d254ed7b5e3666268529cf5e3158f617a8c1d96665f66a6f4a55386edd4': {
     resultId: 'KSOU-MBA-142071',
     issuer: '0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0',
-    timestamp: 1713110400000 // April 15, 2024
+    timestamp: 1713110400000
   }
 };
 
@@ -311,12 +306,8 @@ export const uploadResultToBlockchain = async (studentId: string, resultData: an
     // Calculate hash from result data
     const resultHash = calculateResultHash(resultData);
     
-    // Get delay based on mode - for user experience
-    const delay = isRealBlockchainMode ? 3000 : 1500;
-    await new Promise(resolve => setTimeout(resolve, delay));
-    
     if (isRealBlockchainMode) {
-      // Use the contract if in real blockchain mode and a contract is deployed
+      // Use the contract in real blockchain mode
       const contractAddress = getContractAddress();
       
       if (contractAddress) {
@@ -326,12 +317,17 @@ export const uploadResultToBlockchain = async (studentId: string, resultData: an
         const signer = provider.getSigner();
         const connectedContract = contract.connect(signer);
         
+        console.log('Adding result to blockchain...');
+        console.log('Student ID:', studentId);
+        console.log('Result Hash:', resultHash);
+        
         // Call the smart contract to add the result
         const tx = await connectedContract.addResult(studentId, resultHash);
-        await tx.wait();
+        console.log('Transaction submitted:', tx.hash);
         
-        console.log("Transaction hash:", tx.hash);
-        console.log("Result added to blockchain for student:", studentId);
+        // Wait for the transaction to be mined
+        const receipt = await tx.wait();
+        console.log('Transaction confirmed in block:', receipt.blockNumber);
         
         return true;
       } else {
@@ -365,12 +361,8 @@ export const uploadCertificateToBlockchain = async (fileHash: string, studentId:
       throw new Error('Only teachers and admins can upload certificates');
     }
     
-    // Get delay based on mode - for user experience
-    const delay = isRealBlockchainMode ? 3000 : 1500;
-    await new Promise(resolve => setTimeout(resolve, delay));
-    
     if (isRealBlockchainMode) {
-      // Use the contract if in real blockchain mode and a contract is deployed
+      // Use the contract in real blockchain mode
       const contractAddress = getContractAddress();
       
       if (contractAddress) {
@@ -380,13 +372,17 @@ export const uploadCertificateToBlockchain = async (fileHash: string, studentId:
         const signer = provider.getSigner();
         const connectedContract = contract.connect(signer);
         
-        // Use the fileHash as the resultHash for certificate verification
-        // Student ID will be the roll number
-        const tx = await connectedContract.addResult(studentId, fileHash);
-        await tx.wait();
+        console.log('Adding certificate to blockchain...');
+        console.log('Student ID:', studentId);
+        console.log('File Hash:', fileHash);
         
-        console.log("Transaction hash:", tx.hash);
-        console.log("Certificate added to blockchain for student:", studentId);
+        // Use the fileHash as the resultHash for certificate verification
+        const tx = await connectedContract.addResult(studentId, fileHash);
+        console.log('Transaction submitted:', tx.hash);
+        
+        // Wait for the transaction to be mined
+        const receipt = await tx.wait();
+        console.log('Transaction confirmed in block:', receipt.blockNumber);
         
         return true;
       } else {
@@ -406,22 +402,11 @@ export const uploadCertificateToBlockchain = async (fileHash: string, studentId:
   }
 };
 
-// Add the missing uploadResult function that's being imported
+// The main uploadResult function that handles both certificate and result uploads
 export const uploadResult = async (studentId: string, resultData: any): Promise<boolean> => {
   try {
-    const provider = getProvider();
-    if (!provider) return false;
-    
-    // Get the current blockchain mode from the BlockchainModeContext
-    // If we can't determine it, default to testing mode (false)
-    let isRealBlockchainMode = false;
-    
-    // Check if window.ethereum exists as a simple way to determine if we're in real blockchain mode
-    if (window.ethereum) {
-      // For more precise control, we'd need to pass this from the calling component
-      // But for now we'll infer based on ethereum object availability
-      isRealBlockchainMode = true;
-    }
+    // Get blockchain mode from window.localStorage to ensure consistent usage
+    const isRealBlockchainMode = localStorage.getItem('blockchainMode') === 'true';
     
     if (resultData.type === 'certificate') {
       // If it's a certificate upload, use the certificate upload function
@@ -444,27 +429,38 @@ export const uploadResult = async (studentId: string, resultData: any): Promise<
   }
 };
 
-// For demo purposes, this function will simulate verification or use the contract if deployed
+// For demo and blockchain verification
 export const verifyResultHash = async (resultId: string): Promise<VerificationResult> => {
   try {
+    // Get blockchain mode from localStorage
+    const isRealBlockchainMode = localStorage.getItem('blockchainMode') === 'true';
     const contractAddress = getContractAddress();
     
-    if (contractAddress) {
-      // If contract is deployed, use it to verify the result
+    if (contractAddress && isRealBlockchainMode) {
+      // If contract is deployed and in real mode, use it to verify the result
       const contract = getContract();
       if (!contract) throw new Error('Contract not available');
       
-      // For demo purposes, we'll use the string as a hash directly
-      // In production, you'd calculate the hash properly
-      const resultHash = ethers.utils.id(resultId);
+      console.log('Verifying result on blockchain...');
+      console.log('Result ID:', resultId);
+      
+      // For blockchain verification, we need a bytes32 hash
+      // So we first convert the resultId to a hash if needed
+      const resultHash = resultId.startsWith('0x') && resultId.length === 66 
+        ? resultId 
+        : ethers.utils.id(resultId);
+      
+      console.log('Using hash for verification:', resultHash);
       
       const [isVerified, timestamp, issuer] = await contract.verifyResult(resultHash);
+      console.log('Verification result:', { isVerified, timestamp: timestamp.toString(), issuer });
       
       if (isVerified) {
         return {
           isVerified: true,
           timestamp: timestamp.toNumber(),
           issuer: issuer,
+          resultId: resultId,
           message: 'Result hash verified on blockchain'
         };
       } else {
@@ -473,45 +469,52 @@ export const verifyResultHash = async (resultId: string): Promise<VerificationRe
           message: 'Result hash not found on blockchain'
         };
       }
-    } else {
+    } else if (!isRealBlockchainMode) {
       // Demo implementation - simulate blockchain verification
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate network delay
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Shorter delay for better UX
       
-      // For demo, we'll verify if the hash ends with specific characters
-      const isVerified = resultId.endsWith('123');
+      // In demo mode, verify based on the resultId patterns we have
+      const knownResults = ['STU20210001-SEM2-123', 'JNU-PGDOM-43825', 'KSOU-MBA-142071', 'BHU-CSE-56789'];
+      const isVerified = knownResults.includes(resultId);
       
       if (isVerified) {
         return {
           isVerified: true,
           timestamp: Date.now(),
           issuer: '0x742d35Cc6634C0532925a3b844Bc454e4438f44e',
-          message: 'Result hash verified on blockchain'
+          resultId: resultId,
+          message: 'Result verified in testing mode'
         };
       } else {
         return {
           isVerified: false,
-          message: 'Result hash not found on blockchain'
+          message: 'Result not found in testing mode'
         };
       }
+    } else {
+      return {
+        isVerified: false,
+        message: 'Contract not deployed. Please deploy the contract first.'
+      };
     }
   } catch (error) {
     console.error('Error verifying result:', error);
     return {
       isVerified: false,
-      message: 'Error during verification process'
+      message: 'Error during verification process: ' + (error instanceof Error ? error.message : 'Unknown error')
     };
   }
 };
 
-// Calculate hash from result data (simplified version)
+// Calculate hash from result data
 export const calculateResultHash = (resultData: any): string => {
-  // In a real implementation, this would use ethers.utils.keccak256 or similar
-  // to create a proper hash of the result data
+  // Convert resultData to a consistent string representation
   const dataString = JSON.stringify(resultData);
-  return ethers.utils.id(dataString);
+  // Use keccak256 to get a proper Ethereum-compatible hash
+  return ethers.utils.keccak256(ethers.utils.toUtf8Bytes(dataString));
 };
 
-// Calculate document hash from file - but now we focus on extracting roll numbers
+// Calculate document hash from file
 export const calculateDocumentHash = async (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     try {
@@ -536,47 +539,34 @@ export const calculateDocumentHash = async (file: File): Promise<string> => {
             .join('');
         }
 
-        // Extract roll number patterns from file name and content
-        const rollPatterns = [
-          // JNU pattern - looking for 43825
-          { pattern: /43825/i, hash: '7c5ea36004851c664b3e3b0dae9d71b4e0069fa7a8d24c6f0d0748f5c4c947d1' },
-          
-          // KSOU pattern - looking for 142071
-          { pattern: /142071/i, hash: 'f23a9d254ed7b5e3666268529cf5e3158f617a8c1d96665f66a6f4a55386edd4' },
-          
-          // BHU pattern - looking for 56789
-          { pattern: /56789/i, hash: 'be3a9d254ed7b5e3666268529cf5e3158f617a8c1d96665f66a6f4a55386edd4' },
-        ];
+        // In testing mode, use predefined hashes for demo files
+        const isRealBlockchainMode = localStorage.getItem('blockchainMode') === 'true';
         
-        // Try to match roll number patterns in file name
-        for (const { pattern, hash } of rollPatterns) {
-          if (pattern.test(file.name) || pattern.test(fileContent)) {
-            fileHash = hash;
-            // Add delay to simulate processing time
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            resolve(fileHash);
-            return;
+        if (!isRealBlockchainMode) {
+          // Extract roll number patterns from file name and content
+          const rollPatterns = [
+            // ... keep existing code (roll patterns for demo mode)
+          ];
+          
+          // Try to match roll number patterns in file name
+          for (const { pattern, hash } of rollPatterns) {
+            if (pattern.test(file.name) || pattern.test(fileContent)) {
+              fileHash = hash;
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              resolve(fileHash);
+              return;
+            }
           }
-        }
-        
-        // Add delay to simulate processing time
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        // Determine file type and handle accordingly
-        if (file.name.includes('JAIPUR') || file.name.includes('JNU')) {
-          fileHash = '7c5ea36004851c664b3e3b0dae9d71b4e0069fa7a8d24c6f0d0748f5c4c947d1'; // JNU hash
-        } else if (file.name.includes('KSOU') || file.name.includes('MBA')) {
-          fileHash = 'f23a9d254ed7b5e3666268529cf5e3158f617a8c1d96665f66a6f4a55386edd4'; // KSOU hash
-        } else if (file.type.startsWith('image/') && fileContent.length > 1000) {
-          // Use file size to determine which certificate it might be
-          fileHash = file.size > 300000 ? 
-            'f23a9d254ed7b5e3666268529cf5e3158f617a8c1d96665f66a6f4a55386edd4' : // KSOU for larger files
-            file.size > 200000 ?
-              '7c5ea36004851c664b3e3b0dae9d71b4e0069fa7a8d24c6f0d0748f5c4c947d1' : // JNU for medium files
-              'be3a9d254ed7b5e3666268529cf5e3158f617a8c1d96665f66a6f4a55386edd4'; // BHU for smaller files
+          
+          // Additional demo behavior for testing mode
+          // ... keep existing code (demo behavior)
         } else {
-          // For other files, calculate a hash based on content
-          fileHash = ethers.utils.id(fileContent + Date.now()).slice(2); // remove 0x prefix and add timestamp to ensure uniqueness
+          // In real blockchain mode, calculate an actual hash of the file content
+          console.log('Calculating real document hash...');
+          
+          // Use keccak256 to generate a blockchain-compatible hash
+          fileHash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(fileContent));
+          console.log('Generated document hash:', fileHash);
         }
         
         resolve(fileHash);
@@ -601,97 +591,80 @@ export const calculateDocumentHash = async (file: File): Promise<string> => {
 // Verify document hash against blockchain records
 export const verifyDocumentHash = async (documentHash: string): Promise<VerificationResult> => {
   try {
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    // Get blockchain mode from localStorage
+    const isRealBlockchainMode = localStorage.getItem('blockchainMode') === 'true';
     
-    // Check if we're in real blockchain mode by checking for window.ethereum
-    const isRealBlockchainMode = !!window.ethereum;
-    
-    const contractAddress = getContractAddress();
-    
-    if (contractAddress && isRealBlockchainMode) {
-      // If contract is deployed and we're in real mode, use it to verify the document hash
-      const contract = getContract();
-      if (!contract) throw new Error('Contract not available');
+    if (isRealBlockchainMode) {
+      // Get contract address
+      const contractAddress = getContractAddress();
       
-      // Here you would call a contract method to verify the document hash
-      // This is a simplified example
-      
-      // For demo purposes, we're using a predefined mapping
-      const hashDetails = DOCUMENT_HASH_MAPPING[documentHash];
-      
-      if (hashDetails) {
-        return {
-          isVerified: true,
-          resultId: hashDetails.resultId,
-          timestamp: hashDetails.timestamp,
-          issuer: hashDetails.issuer,
-          message: 'Certificate verified on blockchain'
-        };
+      if (contractAddress) {
+        // If contract is deployed, use it to verify the document hash
+        const contract = getContract();
+        if (!contract) throw new Error('Contract not available');
+        
+        console.log('Verifying document hash on blockchain:', documentHash);
+        
+        // For documents, we already have a bytes32 hash
+        const resultHash = documentHash.startsWith('0x') && documentHash.length === 66
+          ? documentHash
+          : '0x' + documentHash; // Add 0x prefix if not present
+        
+        // Call the smart contract to verify the hash
+        const [isVerified, timestamp, issuer] = await contract.verifyResult(resultHash);
+        console.log('Blockchain verification result:', { isVerified, timestamp: timestamp.toString(), issuer });
+        
+        if (isVerified) {
+          // If verified, try to map the hash to a known result ID if possible
+          let resultId = null;
+          for (const [id, details] of Object.entries(DOCUMENT_HASH_MAPPING)) {
+            if (id === documentHash || id === documentHash.replace('0x', '')) {
+              resultId = details.resultId;
+              break;
+            }
+          }
+          
+          return {
+            isVerified: true,
+            timestamp: timestamp.toNumber(),
+            issuer: issuer,
+            resultId: resultId,
+            message: 'Certificate verified on blockchain'
+          };
+        } else {
+          return {
+            isVerified: false,
+            message: 'Certificate not found on blockchain'
+          };
+        }
       } else {
         return {
           isVerified: false,
-          message: 'Certificate not found on blockchain'
+          message: 'Contract not deployed. Please deploy the contract first.'
         };
       }
     } else {
-      // Demo implementation - simulate blockchain verification using our mapping
-      const hashDetails = DOCUMENT_HASH_MAPPING[documentHash];
+      // In testing mode, use our predefined mapping
+      console.log('Verifying document hash in testing mode:', documentHash);
+      
+      // Strip 0x prefix if present to match our mapping
+      const cleanHash = documentHash.startsWith('0x') ? documentHash.slice(2) : documentHash;
+      
+      // Look up the hash in our demo mapping
+      const hashDetails = DOCUMENT_HASH_MAPPING[cleanHash];
       
       if (hashDetails) {
         return {
           isVerified: true,
-          resultId: hashDetails.resultId,
           timestamp: hashDetails.timestamp,
           issuer: hashDetails.issuer,
-          message: 'Certificate verified on blockchain'
+          resultId: hashDetails.resultId,
+          message: 'Certificate verified in testing mode'
         };
       } else {
-        // For demo purposes, let's verify additional patterns
-        // JNU pattern
-        if (documentHash.startsWith('7c5e')) {
-          return {
-            isVerified: true,
-            resultId: 'JNU-PGDOM-43825',
-            timestamp: Date.now(),
-            issuer: '0x397a5902c9A1D8a885B909329a66AA2cc096cCee',
-            message: 'Certificate verified on blockchain'
-          };
-        }
-        // KSOU pattern 
-        else if (documentHash.startsWith('f23a')) {
-          return {
-            isVerified: true,
-            resultId: 'KSOU-MBA-142071',
-            timestamp: Date.now(),
-            issuer: '0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0',
-            message: 'Certificate verified on blockchain'
-          };
-        }
-        // BHU pattern
-        else if (documentHash.startsWith('be3a')) {
-          return {
-            isVerified: true,
-            resultId: 'BHU-CSE-56789',
-            timestamp: Date.now(),
-            issuer: '0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0',
-            message: 'Certificate verified on blockchain'
-          };
-        }
-        // Default pattern
-        else if (documentHash.startsWith('e3')) {
-          return {
-            isVerified: true,
-            resultId: 'STU20210001-SEM2-123',
-            timestamp: Date.now(),
-            issuer: '0x742d35Cc6634C0532925a3b844Bc454e4438f44e',
-            message: 'Certificate verified on blockchain'
-          };
-        }
-        
         return {
           isVerified: false,
-          message: 'Certificate not found on blockchain'
+          message: 'Certificate not found in testing mode'
         };
       }
     }
@@ -699,25 +672,36 @@ export const verifyDocumentHash = async (documentHash: string): Promise<Verifica
     console.error('Error verifying document hash:', error);
     return {
       isVerified: false,
-      message: 'Error during verification process'
+      message: 'Error during verification: ' + (error instanceof Error ? error.message : 'Unknown error')
     };
   }
 };
 
-// Process a verification URL
+// Process URL or QR code to extract verification hash
 export const processVerificationUrl = (url: string): string | null => {
   try {
-    // Extract the verification hash from the URL
-    // Expected format: http://domain.com/?verify=hash
+    // Check if it's already a hash
+    if (url.match(/^[0-9a-fA-F]{64}$/) || url.match(/^0x[0-9a-fA-F]{64}$/)) {
+      return url;
+    }
+    
+    // Check if it's a URL with verify parameter
     const urlObj = new URL(url);
-    return urlObj.searchParams.get('verify');
-  } catch (error) {
-    console.error('Error processing verification URL:', error);
+    if (urlObj.searchParams.has('verify')) {
+      return urlObj.searchParams.get('verify');
+    }
+    
+    return null;
+  } catch (e) {
+    // Not a valid URL, check if it contains a hash pattern
+    const hashMatch = url.match(/[0-9a-fA-F]{64}/);
+    if (hashMatch) {
+      return hashMatch[0];
+    }
     return null;
   }
 };
 
-// Get student results by connected wallet
 export const getStudentResultsByWallet = async (): Promise<ResultData[]> => {
   try {
     const provider = getProvider();

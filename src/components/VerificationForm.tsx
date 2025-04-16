@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Search, CircleAlert, ArrowRight, ShieldCheck, FileDigit, AlertTriangle, FileUp, Upload, QrCode } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, ArrowRight, ShieldCheck, FileDigit, AlertTriangle, FileUp, Upload, QrCode } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -25,6 +25,15 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
   const [lastVerifiedDocumentData, setLastVerifiedDocumentData] = useState<any>(null);
   const { toast } = useToast();
   const { isRealBlockchainMode } = React.useContext(BlockchainModeContext);
+  
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const verifyParam = url.searchParams.get('verify');
+    
+    if (verifyParam) {
+      handleVerificationFromHash(verifyParam);
+    }
+  }, []);
 
   const handleVerify = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -38,22 +47,38 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
     setIsSearching(true);
     
     try {
-      // First, check if we have this result in our demo data
-      const result = getResultById(resultId);
+      const verificationResult = await verifyResultHash(resultId);
       
-      if (result) {
-        // Verify the result on the blockchain
-        const verificationResult = await verifyResultHash(resultId);
+      if (verificationResult.isVerified) {
+        toast({
+          title: "Result Verified",
+          description: isRealBlockchainMode 
+            ? "Result has been verified on the blockchain" 
+            : "Result has been verified in testing mode",
+        });
         
-        if (verificationResult.isVerified) {
+        if (verificationResult.resultId) {
+          onResultFound(verificationResult.resultId);
+        } else {
+          const result = getResultById(resultId);
+          if (result) {
+            onResultFound(resultId);
+          } else {
+            toast({
+              title: "Verification Successful",
+              description: "The hash was verified, but no detailed record was found.",
+            });
+          }
+        }
+      } else {
+        const result = getResultById(resultId);
+        
+        if (result) {
           toast({
             title: "Result Found",
-            description: isRealBlockchainMode 
-              ? "Result has been verified on the blockchain" 
-              : "Result has been verified in demo mode",
+            description: "Result found in database",
           });
           
-          // Clear any previous document data to ensure fresh display
           setLastVerifiedDocumentData(null);
           
           onResultFound(resultId);
@@ -61,16 +86,10 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
           toast({
             variant: "destructive",
             title: "Verification Failed",
-            description: verificationResult.message || "This result could not be verified on the blockchain",
+            description: "No result found with this ID or hash. Please check and try again.",
           });
+          setSearchError('No result found with this ID or hash. Please check and try again.');
         }
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Result Not Found",
-          description: "No result found with this ID. Please check and try again.",
-        });
-        setSearchError('No result found with this ID. Please check and try again.');
       }
     } catch (error) {
       console.error("Verification error:", error);
@@ -93,7 +112,6 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
     setIsSearching(true);
     
     try {
-      // Store document data for later use
       if (documentData) {
         setLastVerifiedDocumentData(documentData);
       }
@@ -105,14 +123,12 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
           title: "Certificate Verified",
           description: isRealBlockchainMode 
             ? "The certificate has been verified on the blockchain" 
-            : "The certificate has been verified in demo mode",
+            : "The certificate has been verified in testing mode",
         });
         
-        // If we have a resultId from verification or from the document data
         const resultIdToUse = verificationResult.resultId || documentData?.resultId;
         
         if (resultIdToUse) {
-          // Reset document data to force fresh load
           onResultFound(resultIdToUse);
         }
       } else {
@@ -134,116 +150,41 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
     }
   };
 
+  const handleVerificationFromHash = (hash: string) => {
+    setResultId(hash);
+    setActiveTab('id');
+    
+    setLastVerifiedDocumentData(null);
+    
+    const verifyEvent = new FormEvent('submit', { cancelable: true });
+    document.getElementById('verification-form')?.dispatchEvent(verifyEvent);
+  };
+
   const handleQrCodeScan = async (qrData: string) => {
     setShowQrScanner(false);
     
     try {
-      // Try to parse the QR data as JSON (for enhanced QR codes with document data)
       const parsedData = JSON.parse(qrData);
       
       if (parsedData.verify) {
-        // Set the result ID and verify it
-        setResultId(parsedData.verify);
-        setActiveTab('id');
+        handleVerificationFromHash(parsedData.verify);
         
-        // Store document data if present
         if (parsedData.documentData) {
           setLastVerifiedDocumentData(parsedData.documentData);
         }
-        
-        // Trigger verification process
-        setIsSearching(true);
-        
-        try {
-          const verificationResult = await verifyDocumentHash(parsedData.verify);
-          
-          if (verificationResult.isVerified) {
-            toast({
-              title: "Certificate Verified",
-              description: isRealBlockchainMode 
-                ? "The certificate has been verified on the blockchain" 
-                : "The certificate has been verified in demo mode",
-            });
-            
-            // If a resultId is available from either source, use it
-            const resultIdToUse = verificationResult.resultId || 
-                                 parsedData.documentData?.resultId ||
-                                 parsedData.resultId;
-                                 
-            if (resultIdToUse) {
-              onResultFound(resultIdToUse);
-            }
-          } else {
-            toast({
-              variant: "destructive",
-              title: "Verification Failed",
-              description: verificationResult.message || "This certificate could not be verified",
-            });
-          }
-        } catch (error) {
-          console.error("QR verification error:", error);
-          toast({
-            variant: "destructive",
-            title: "Verification Error",
-            description: "An error occurred during QR verification. Please try again.",
-          });
-        } finally {
-          setIsSearching(false);
-        }
       }
     } catch (e) {
-      // Not JSON, continue with old behavior for URL or direct hash
       const verificationHash = processVerificationUrl(qrData);
       
       if (verificationHash) {
-        // Set the result ID and verify it
-        setResultId(verificationHash);
-        setActiveTab('id');
-        
-        // Trigger verification process
-        setIsSearching(true);
-        
-        try {
-          const verificationResult = await verifyDocumentHash(verificationHash);
-          
-          if (verificationResult.isVerified) {
-            toast({
-              title: "Certificate Verified",
-              description: isRealBlockchainMode 
-                ? "The certificate has been verified on the blockchain" 
-                : "The certificate has been verified in demo mode",
-            });
-            
-            if (verificationResult.resultId) {
-              onResultFound(verificationResult.resultId);
-            }
-          } else {
-            toast({
-              variant: "destructive",
-              title: "Verification Failed",
-              description: verificationResult.message || "This certificate could not be verified",
-            });
-          }
-        } catch (error) {
-          console.error("QR verification error:", error);
-          toast({
-            variant: "destructive",
-            title: "Verification Error",
-            description: "An error occurred during QR verification. Please try again.",
-          });
-        } finally {
-          setIsSearching(false);
-        }
+        handleVerificationFromHash(verificationHash);
       } else {
-        // Try to use the QR data directly as a result ID
         setResultId(qrData);
         setActiveTab('id');
         
-        // Clear any previous document data
         setLastVerifiedDocumentData(null);
         
-        // Manually submit the form
-        const verifyEvent = new Event('submit', { cancelable: true });
+        const verifyEvent = new FormEvent('submit', { cancelable: true });
         document.getElementById('verification-form')?.dispatchEvent(verifyEvent);
       }
     }
@@ -381,12 +322,13 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.4, duration: 0.4 }}
                   >
-                    <p className="font-medium mb-1">Example IDs for testing:</p>
+                    <p className="font-medium mb-1">
+                      {isRealBlockchainMode ? 'Blockchain Verification' : 'Testing Mode Verification'}
+                    </p>
                     <ul className="list-disc list-inside space-y-1 pl-2">
-                      <li className="flex items-center gap-1"><span className="text-green-500">✓</span> STU20210001-SEM2-123 (will verify)</li>
-                      <li className="flex items-center gap-1"><span className="text-green-500">✓</span> JNU-PGDOM-43825 (will verify)</li>
-                      <li className="flex items-center gap-1"><span className="text-green-500">✓</span> KSOU-MBA-142071 (will verify)</li>
-                      <li className="flex items-center gap-1"><span className="text-red-500">✗</span> STU20210003-SEM3-789 (won't verify)</li>
+                      <li>Enter a student ID, result ID or blockchain hash</li>
+                      <li>Results will be verified against {isRealBlockchainMode ? 'Sepolia blockchain records' : 'testing database'}</li>
+                      <li>QR codes can also be scanned for quick verification</li>
                     </ul>
                   </motion.div>
                 </form>
@@ -419,7 +361,7 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
           >
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground mb-2">
               <div className={`h-2 w-2 rounded-full ${isRealBlockchainMode ? 'bg-green-500 animate-pulse' : 'bg-yellow-500'}`}></div>
-              <span>{isRealBlockchainMode ? 'Live Blockchain Verification' : 'Demo Mode Verification'}</span>
+              <span>{isRealBlockchainMode ? 'Live Blockchain Verification' : 'Testing Mode Verification'}</span>
             </div>
           </motion.div>
         </CardContent>

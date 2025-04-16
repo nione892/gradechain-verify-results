@@ -17,8 +17,12 @@ export const BlockchainModeContext = React.createContext({
 });
 
 const Header: React.FC = () => {
+  // Initialize blockchain mode from localStorage, default to false (testing mode)
+  const [isRealBlockchainMode, setIsRealBlockchainMode] = useState(() => {
+    const savedMode = localStorage.getItem('blockchainMode');
+    return savedMode === 'true';
+  });
   const [userRole, setUserRole] = useState<UserRole>(null);
-  const [isRealBlockchainMode, setIsRealBlockchainMode] = useState(false);
   const [networkName, setNetworkName] = useState<string>('');
   const location = useLocation();
   const { toast } = useToast();
@@ -70,6 +74,9 @@ const Header: React.FC = () => {
     if (isRealBlockchainMode) {
       updateNetworkInfo();
     }
+    
+    // Save the current mode to localStorage for app-wide consistency
+    localStorage.setItem('blockchainMode', isRealBlockchainMode.toString());
   }, [isRealBlockchainMode]);
   
   const updateNetworkInfo = async () => {
@@ -86,6 +93,15 @@ const Header: React.FC = () => {
         
         const name = networks[chainId] || `Chain ID: ${parseInt(chainId, 16)}`;
         setNetworkName(name);
+        
+        // Switch to Sepolia if on another network and in deploy mode
+        if (isRealBlockchainMode && chainId !== '0xaa36a7') {
+          // Only prompt to switch networks if not already on Sepolia
+          toast({
+            title: "Network Notice",
+            description: "This app is designed to work with Sepolia Testnet. Please switch networks for full functionality.",
+          });
+        }
       } catch (error) {
         console.error('Error getting network:', error);
       }
