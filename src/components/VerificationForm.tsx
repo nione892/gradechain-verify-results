@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
-import { getResultById } from '@/utils/demoData';
+import { getResultById, ResultData } from '@/utils/demoData';
 import { verifyResultHash, verifyDocumentHash, processVerificationUrl } from '@/utils/web3Utils';
 import { motion } from 'framer-motion';
 import CertificateUploader from '@/components/CertificateUploader';
@@ -19,15 +19,20 @@ interface VerificationFormProps {
   onResultFound: (resultId: string) => void;
 }
 
+interface DocumentData {
+  resultId?: string;
+  [key: string]: any;
+}
+
 const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) => {
   const [resultId, setResultId] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState('');
   const [activeTab, setActiveTab] = useState<'id' | 'document' | 'qrcode'>('id');
   const [showQrScanner, setShowQrScanner] = useState(false);
-  const [lastVerifiedDocumentData, setLastVerifiedDocumentData] = useState<any>(null);
+  const [lastVerifiedDocumentData, setLastVerifiedDocumentData] = useState<DocumentData | null>(null);
   const [verificationSuccess, setVerificationSuccess] = useState<{hash: string, studentName: string} | null>(null);
-  const [fullResultData, setFullResultData] = useState<any>(null);
+  const [fullResultData, setFullResultData] = useState<ResultData | null>(null);
   const { toast } = useToast();
   const { isRealBlockchainMode } = React.useContext(BlockchainModeContext);
   
@@ -135,7 +140,7 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
     }
   };
 
-  const handleDocumentVerify = async (documentHash: string, documentData?: any) => {
+  const handleDocumentVerify = async (documentHash: string, documentData?: DocumentData) => {
     if (!documentHash) {
       return;
     }
@@ -157,7 +162,7 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
             : "The certificate has been verified in testing mode",
         });
         
-        const resultIdToUse = verificationResult.resultId || documentData?.resultId;
+        const resultIdToUse = verificationResult.resultId || (documentData?.resultId || '');
         
         if (resultIdToUse) {
           const resultData = getResultById(resultIdToUse);
