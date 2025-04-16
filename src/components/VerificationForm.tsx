@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Search, ArrowRight, ShieldCheck, FileDigit, AlertTriangle, FileUp, Upload, QrCode } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,6 +11,7 @@ import CertificateUploader from '@/components/CertificateUploader';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import QrCodeScanner from '@/components/QrCodeScanner';
 import { BlockchainModeContext } from '@/components/Header';
+import VerificationSuccess from './VerificationSuccess';
 
 interface VerificationFormProps {
   onResultFound: (resultId: string) => void;
@@ -24,6 +24,7 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
   const [activeTab, setActiveTab] = useState<'id' | 'document' | 'qrcode'>('id');
   const [showQrScanner, setShowQrScanner] = useState(false);
   const [lastVerifiedDocumentData, setLastVerifiedDocumentData] = useState<any>(null);
+  const [verificationSuccess, setVerificationSuccess] = useState<{hash: string, studentName: string} | null>(null);
   const { toast } = useToast();
   const { isRealBlockchainMode } = React.useContext(BlockchainModeContext);
   
@@ -39,6 +40,7 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
   const handleVerify = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSearchError('');
+    setVerificationSuccess(null);
     
     if (!resultId.trim()) {
       setSearchError('Please enter a result ID or verification hash');
@@ -57,6 +59,13 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
             ? "Result has been verified on the blockchain" 
             : "Result has been verified in testing mode",
         });
+        
+        if (verificationResult.studentName) {
+          setVerificationSuccess({
+            hash: resultId,
+            studentName: verificationResult.studentName
+          });
+        }
         
         if (verificationResult.resultId) {
           onResultFound(verificationResult.resultId);
@@ -157,7 +166,6 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
     
     setLastVerifiedDocumentData(null);
     
-    // Create a synthetic form submit event and call handleVerify directly
     setTimeout(() => {
       const form = document.getElementById('verification-form') as HTMLFormElement;
       if (form) {
@@ -190,7 +198,6 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
         
         setLastVerifiedDocumentData(null);
         
-        // Handle using proper form event type
         setTimeout(() => {
           const form = document.getElementById('verification-form') as HTMLFormElement;
           if (form) {
@@ -239,129 +246,136 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
             </p>
           </motion.div>
           
-          {showQrScanner ? (
-            <QrCodeScanner 
-              onScan={handleQrCodeScan} 
-              onClose={() => setShowQrScanner(false)} 
+          {verificationSuccess ? (
+            <VerificationSuccess 
+              hash={verificationSuccess.hash}
+              studentName={verificationSuccess.studentName}
             />
           ) : (
-            <Tabs defaultValue="id" className="mb-4" onValueChange={(value) => setActiveTab(value as any)}>
-              <TabsList className="grid w-full grid-cols-3 mb-4">
-                <TabsTrigger value="id" className="flex items-center gap-2">
-                  <FileDigit className="h-4 w-4" />
-                  By ID
-                </TabsTrigger>
-                <TabsTrigger value="document" className="flex items-center gap-2">
-                  <FileUp className="h-4 w-4" />
-                  By File
-                </TabsTrigger>
-                <TabsTrigger value="qrcode" className="flex items-center gap-2">
-                  <QrCode className="h-4 w-4" />
-                  By QR Code
-                </TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="id">
-                <form onSubmit={handleVerify} className="space-y-4">
-                  <motion.div 
-                    className="flex flex-col md:flex-row gap-2 relative"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3, duration: 0.4 }}
-                  >
-                    <div className="flex-grow relative">
-                      <Input
-                        placeholder="Enter Result ID or Verification Hash"
-                        value={resultId}
-                        onChange={(e) => setResultId(e.target.value)}
-                        className="w-full border-primary/20 focus:border-primary/50 pr-10 pl-4 py-6"
-                      />
-                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
-                        <FileDigit className="h-5 w-5" />
-                      </div>
-                    </div>
-                    <Button 
-                      type="submit" 
-                      disabled={isSearching} 
-                      className="min-w-[140px] relative overflow-hidden group py-6"
-                    >
-                      <span className="relative z-10 flex items-center gap-2">
-                        {isSearching ? (
-                          <>
-                            <motion.div
-                              animate={{ rotate: 360 }}
-                              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                            >
-                              <Search className="h-4 w-4" />
-                            </motion.div>
-                            <span>Verifying...</span>
-                          </>
-                        ) : (
-                          <>
-                            <Search className="h-4 w-4" />
-                            <span>Verify Result</span>
-                            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                          </>
-                        )}
-                      </span>
-                      {!isSearching && (
-                        <motion.div 
-                          className="absolute inset-0 bg-primary opacity-0 group-hover:opacity-10"
-                          initial={false}
-                          animate={{ scale: isSearching ? 1 : 0.6 }}
-                          whileHover={{ scale: 1 }}
-                        />
-                      )}
-                    </Button>
-                  </motion.div>
-                  
-                  {searchError && (
+            showQrScanner ? (
+              <QrCodeScanner 
+                onScan={handleQrCodeScan} 
+                onClose={() => setShowQrScanner(false)} 
+              />
+            ) : (
+              <Tabs defaultValue="id" className="mb-4" onValueChange={(value) => setActiveTab(value as any)}>
+                <TabsList className="grid w-full grid-cols-3 mb-4">
+                  <TabsTrigger value="id" className="flex items-center gap-2">
+                    <FileDigit className="h-4 w-4" />
+                    By ID
+                  </TabsTrigger>
+                  <TabsTrigger value="document" className="flex items-center gap-2">
+                    <FileUp className="h-4 w-4" />
+                    By File
+                  </TabsTrigger>
+                  <TabsTrigger value="qrcode" className="flex items-center gap-2">
+                    <QrCode className="h-4 w-4" />
+                    By QR Code
+                  </TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="id">
+                  <form onSubmit={handleVerify} className="space-y-4">
                     <motion.div 
-                      className="text-destructive flex items-center gap-2 text-sm p-3 bg-destructive/10 rounded-md"
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      transition={{ duration: 0.3 }}
+                      className="flex flex-col md:flex-row gap-2 relative"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3, duration: 0.4 }}
                     >
-                      <AlertTriangle className="h-4 w-4 flex-shrink-0" />
-                      <span>{searchError}</span>
+                      <div className="flex-grow relative">
+                        <Input
+                          placeholder="Enter Result ID or Verification Hash"
+                          value={resultId}
+                          onChange={(e) => setResultId(e.target.value)}
+                          className="w-full border-primary/20 focus:border-primary/50 pr-10 pl-4 py-6"
+                        />
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
+                          <FileDigit className="h-5 w-5" />
+                        </div>
+                      </div>
+                      <Button 
+                        type="submit" 
+                        disabled={isSearching} 
+                        className="min-w-[140px] relative overflow-hidden group py-6"
+                      >
+                        <span className="relative z-10 flex items-center gap-2">
+                          {isSearching ? (
+                            <>
+                              <motion.div
+                                animate={{ rotate: 360 }}
+                                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                              >
+                                <Search className="h-4 w-4" />
+                              </motion.div>
+                              <span>Verifying...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Search className="h-4 w-4" />
+                              <span>Verify Result</span>
+                              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                            </>
+                          )}
+                        </span>
+                        {!isSearching && (
+                          <motion.div 
+                            className="absolute inset-0 bg-primary opacity-0 group-hover:opacity-10"
+                            initial={false}
+                            animate={{ scale: isSearching ? 1 : 0.6 }}
+                            whileHover={{ scale: 1 }}
+                          />
+                        )}
+                      </Button>
                     </motion.div>
-                  )}
-                  
-                  <motion.div 
-                    className="text-xs text-muted-foreground pt-2 bg-muted/50 p-3 rounded-md"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.4, duration: 0.4 }}
-                  >
-                    <p className="font-medium mb-1">
-                      {isRealBlockchainMode ? 'Blockchain Verification' : 'Testing Mode Verification'}
+                    
+                    {searchError && (
+                      <motion.div 
+                        className="text-destructive flex items-center gap-2 text-sm p-3 bg-destructive/10 rounded-md"
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+                        <span>{searchError}</span>
+                      </motion.div>
+                    )}
+                    
+                    <motion.div 
+                      className="text-xs text-muted-foreground pt-2 bg-muted/50 p-3 rounded-md"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.4, duration: 0.4 }}
+                    >
+                      <p className="font-medium mb-1">
+                        {isRealBlockchainMode ? 'Blockchain Verification' : 'Testing Mode Verification'}
+                      </p>
+                      <ul className="list-disc list-inside space-y-1 pl-2">
+                        <li>Enter a student ID, result ID or blockchain hash</li>
+                        <li>Results will be verified against {isRealBlockchainMode ? 'Sepolia blockchain records' : 'testing database'}</li>
+                        <li>QR codes can also be scanned for quick verification</li>
+                      </ul>
+                    </motion.div>
+                  </form>
+                </TabsContent>
+                
+                <TabsContent value="document">
+                  <CertificateUploader onVerify={handleDocumentVerify} isVerifying={isSearching} />
+                </TabsContent>
+                
+                <TabsContent value="qrcode">
+                  <div className="flex flex-col items-center justify-center p-8 bg-muted/30 rounded-lg border border-dashed border-primary/30">
+                    <QrCode className="h-16 w-16 text-primary/70 mb-4" />
+                    <h3 className="text-lg font-medium mb-2">Scan Certificate QR Code</h3>
+                    <p className="text-sm text-muted-foreground text-center mb-4">
+                      Use your device's camera to scan a QR code from a certificate to verify its authenticity
                     </p>
-                    <ul className="list-disc list-inside space-y-1 pl-2">
-                      <li>Enter a student ID, result ID or blockchain hash</li>
-                      <li>Results will be verified against {isRealBlockchainMode ? 'Sepolia blockchain records' : 'testing database'}</li>
-                      <li>QR codes can also be scanned for quick verification</li>
-                    </ul>
-                  </motion.div>
-                </form>
-              </TabsContent>
-              
-              <TabsContent value="document">
-                <CertificateUploader onVerify={handleDocumentVerify} isVerifying={isSearching} />
-              </TabsContent>
-              
-              <TabsContent value="qrcode">
-                <div className="flex flex-col items-center justify-center p-8 bg-muted/30 rounded-lg border border-dashed border-primary/30">
-                  <QrCode className="h-16 w-16 text-primary/70 mb-4" />
-                  <h3 className="text-lg font-medium mb-2">Scan Certificate QR Code</h3>
-                  <p className="text-sm text-muted-foreground text-center mb-4">
-                    Use your device's camera to scan a QR code from a certificate to verify its authenticity
-                  </p>
-                  <Button onClick={() => setShowQrScanner(true)}>
-                    Open Camera Scanner
-                  </Button>
-                </div>
-              </TabsContent>
-            </Tabs>
+                    <Button onClick={() => setShowQrScanner(true)}>
+                      Open Camera Scanner
+                    </Button>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            )
           )}
           
           <motion.div 

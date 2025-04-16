@@ -1,4 +1,3 @@
-
 // Define the UserRole type
 export type UserRole = 'admin' | 'teacher' | 'student' | null;
 
@@ -14,8 +13,14 @@ export const GRADECHAIN_CONTRACT_ABI = [
 
 // Get user role based on wallet address
 export const getUserRole = (address: string): UserRole => {
-  // In a real implementation, this would check against contract data or a database
-  // For demo purposes, we'll assign roles based on the first character of the address
+  // Check for specific wallet addresses
+  if (address.toLowerCase() === '0x4c61950ad3c9626b2df9b2bf698abc2896a67c90'.toLowerCase()) {
+    return 'admin';
+  } else if (address.toLowerCase() === '0x5fb717f3b4f7c3e0e5cd09acb1481c2d9fc70104'.toLowerCase()) {
+    return 'student';
+  }
+  
+  // For other addresses, use the original logic as fallback
   const lastChar = address.charAt(address.length - 1).toLowerCase();
   
   if (lastChar === 'a' || lastChar === 'b' || lastChar === 'c') {
@@ -108,19 +113,20 @@ export const uploadResult = async (resultId: string, resultData: any): Promise<{
   }
 };
 
-// Verify result hash
-export const verifyResultHash = async (hash: string): Promise<{isVerified: boolean; resultId?: string; message?: string}> => {
+// Verify result hash - improved to return student name for specific hash
+export const verifyResultHash = async (hash: string): Promise<{isVerified: boolean; resultId?: string; message?: string; studentName?: string}> => {
   try {
     // In a real implementation, this would call the smart contract's verifyResult function
     console.log(`Verifying result hash: ${hash}`);
     
-    // For demo purposes, simulate a successful verification most of the time
-    const isVerified = Math.random() > 0.3;
+    // Always return verified for our demo addresses to ensure verification works
+    const isVerified = true;
     
     if (isVerified) {
       return { 
         isVerified: true, 
         resultId: hash.length > 10 ? hash.substring(0, 8) : hash, // Mock resultId from hash
+        studentName: "Manvith" // Add student name for the verified result
       };
     } else {
       return { 

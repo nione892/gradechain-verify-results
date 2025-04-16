@@ -1,69 +1,57 @@
 
 import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { Users, Check, RefreshCw, UserPlus } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Users, UserPlus, CheckCircle, AlertCircle } from 'lucide-react';
 import { registerTeacher } from '@/utils/web3Utils';
-import { BlockchainModeContext } from './Header';
-
-const formSchema = z.object({
-  walletAddress: z.string()
-    .min(42, { message: "Wallet address is required and must be valid" })
-    .regex(/^0x[a-fA-F0-9]{40}$/, { message: "Must be a valid Ethereum address" }),
-  teacherName: z.string().min(2, { message: "Teacher name is required" }),
-  department: z.string().optional(),
-  email: z.string().email({ message: "Must be a valid email" }).optional().or(z.literal('')),
-});
-
-type FormValues = z.infer<typeof formSchema>;
+import { useToast } from '@/hooks/use-toast';
+import { BlockchainModeContext } from '@/components/Header';
 
 const TeacherRegistration: React.FC = () => {
+  const [teacherAddress, setTeacherAddress] = useState('');
+  const [teacherName, setTeacherName] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [registeredTeachers, setRegisteredTeachers] = useState<{ address: string; name: string }[]>([
+    { address: '0x71C7656EC7ab88b098defB751B7401B5f6d8976F', name: 'Sarah Johnson' },
+    { address: '0x2546BcD3c84621e976D8185a91A922aE77ECEc30', name: 'Michael Chen' },
+  ]);
   const { toast } = useToast();
   const { isRealBlockchainMode } = React.useContext(BlockchainModeContext);
 
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      walletAddress: '',
-      teacherName: '',
-      department: '',
-      email: '',
-    },
-  });
-
-  const onSubmit = async (data: FormValues) => {
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!teacherAddress || !teacherName) {
+      toast({
+        variant: "destructive",
+        title: "Missing Information",
+        description: "Please provide both wallet address and teacher name",
+      });
+      return;
+    }
+    
     setIsRegistering(true);
-    setSuccessMessage(null);
-
+    
     try {
-      const result = await registerTeacher(data.walletAddress, data.teacherName);
-
+      const result = await registerTeacher(teacherAddress, teacherName);
+      
       if (result.success) {
-        setSuccessMessage(`Teacher ${data.teacherName} registered successfully`);
         toast({
           title: "Teacher Registered",
-          description: isRealBlockchainMode 
-            ? "Teacher has been registered on the blockchain" 
-            : "Teacher has been registered in testing mode",
-          variant: "default",
+          description: "Teacher has been successfully registered on the blockchain",
         });
-        form.reset();
+        
+        // Add to the list
+        setRegisteredTeachers([
+          ...registeredTeachers,
+          { address: teacherAddress, name: teacherName }
+        ]);
+        
+        // Clear form
+        setTeacherAddress('');
+        setTeacherName('');
       } else {
         toast({
           variant: "destructive",
@@ -75,125 +63,91 @@ const TeacherRegistration: React.FC = () => {
       console.error("Error registering teacher:", error);
       toast({
         variant: "destructive",
-        title: "Error",
-        description: error instanceof Error ? error.message : "Unknown error occurred",
+        title: "Registration Error",
+        description: "An error occurred while registering the teacher",
       });
     } finally {
       setIsRegistering(false);
     }
   };
-
+  
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-3">
           <CardTitle className="flex items-center">
-            <UserPlus className="mr-2 h-5 w-5 text-primary" />
+            <UserPlus className="h-5 w-5 mr-2 text-primary" />
             Register New Teacher
           </CardTitle>
-          <CardDescription>
-            Register a teacher to allow them to upload student results to the {isRealBlockchainMode ? 'blockchain' : 'testing environment'}
-          </CardDescription>
         </CardHeader>
         <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <FormField
-                control={form.control}
-                name="walletAddress"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Wallet Address</FormLabel>
-                    <FormControl>
-                      <Input placeholder="0x..." {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      The Ethereum wallet address of the teacher
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
+          <form onSubmit={handleRegister} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="teacherAddress">Teacher Wallet Address</Label>
+              <Input
+                id="teacherAddress"
+                placeholder="0x..."
+                value={teacherAddress}
+                onChange={(e) => setTeacherAddress(e.target.value)}
               />
-              
-              <FormField
-                control={form.control}
-                name="teacherName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Teacher Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Full name" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="teacherName">Teacher Name</Label>
+              <Input
+                id="teacherName"
+                placeholder="Full name"
+                value={teacherName}
+                onChange={(e) => setTeacherName(e.target.value)}
               />
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField
-                  control={form.control}
-                  name="department"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Department (Optional)</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g., Computer Science" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email (Optional)</FormLabel>
-                      <FormControl>
-                        <Input type="email" placeholder="teacher@school.edu" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              
-              <Button
-                type="submit"
-                disabled={isRegistering}
-                className="w-full md:w-auto"
-              >
-                {isRegistering ? (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                    Registering...
-                  </>
-                ) : (
-                  <>
-                    <Users className="mr-2 h-4 w-4" />
-                    Register Teacher
-                  </>
-                )}
-              </Button>
-            </form>
-          </Form>
-          
-          {successMessage && (
-            <div className="mt-6 p-4 bg-green-50 text-green-800 rounded-md flex items-center">
-              <Check className="h-5 w-5 mr-2 text-green-600" />
-              <p>{successMessage}</p>
+            </div>
+            <Button type="submit" disabled={isRegistering} className="w-full">
+              {isRegistering ? 'Registering...' : 'Register Teacher'}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+      
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center">
+            <Users className="h-5 w-5 mr-2 text-primary" />
+            Registered Teachers
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {registeredTeachers.length > 0 ? (
+            <div className="space-y-3">
+              {registeredTeachers.map((teacher, index) => (
+                <div key={index} className="flex items-start p-3 bg-muted/50 rounded-lg">
+                  <CheckCircle className="h-5 w-5 text-green-500 mr-3 mt-1 flex-shrink-0" />
+                  <div>
+                    <p className="font-medium">{teacher.name}</p>
+                    <p className="text-xs font-mono break-all text-muted-foreground">
+                      {teacher.address}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-4 text-center text-muted-foreground">
+              <AlertCircle className="h-10 w-10 mx-auto mb-2 opacity-50" />
+              <p>No teachers registered yet</p>
             </div>
           )}
         </CardContent>
-        <CardFooter className="bg-muted/20 border-t text-xs text-muted-foreground">
-          <p>
-            {isRealBlockchainMode 
-              ? 'Teachers will be registered on the Sepolia testnet blockchain' 
-              : 'This is running in test mode. No actual blockchain transactions will occur.'}
-          </p>
-        </CardFooter>
       </Card>
+      
+      <div className="text-sm text-muted-foreground bg-muted/30 p-4 rounded-lg">
+        <p className="flex items-center">
+          <span className={`h-2 w-2 rounded-full mr-2 ${isRealBlockchainMode ? 'bg-green-500 animate-pulse' : 'bg-yellow-500'}`}></span>
+          <span>
+            {isRealBlockchainMode 
+              ? 'Teachers are being registered on the Sepolia testnet' 
+              : 'Teachers are being registered in demo mode (no blockchain transactions)'}
+          </span>
+        </p>
+      </div>
     </div>
   );
 };
