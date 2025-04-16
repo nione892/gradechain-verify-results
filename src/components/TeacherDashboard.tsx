@@ -1,6 +1,7 @@
+
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { uploadResult, calculateResultHash, calculateDocumentHash } from '@/utils/web3Utils';
+import { uploadResult as uploadResultToBlockchain, calculateResultHash, calculateDocumentHash } from '@/utils/web3Utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
@@ -78,9 +79,9 @@ const TeacherDashboard: React.FC = () => {
       setResultHash(hash);
       
       // Upload to blockchain
-      const uploadResult = await uploadResult(data.studentId, data);
+      const result = await uploadResultToBlockchain(data.studentId, data);
       
-      if (uploadResult.success) {
+      if (result.success) {
         toast({
           title: "Result Uploaded",
           description: (
