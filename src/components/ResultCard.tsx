@@ -23,7 +23,8 @@ import {
   ExternalLink,
   Clock,
   Shield,
-  Copy
+  Copy,
+  DownloadCloud
 } from 'lucide-react';
 import { ResultData } from '@/utils/demoData';
 import { useToast } from '@/components/ui/use-toast';
@@ -31,7 +32,7 @@ import { verifyResultHash } from '@/utils/web3Utils';
 
 interface ResultCardProps {
   result: ResultData;
-  onClose: () => void;
+  onClose?: () => void;
 }
 
 enum VerificationStatus {
@@ -108,6 +109,97 @@ const ResultCard: React.FC<ResultCardProps> = ({ result, onClose }) => {
 
   const getTotalCredits = () => {
     return result.courses.reduce((total, course) => total + course.credits, 0);
+  };
+
+  const handlePrintResult = () => {
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      const resultContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Academic Result - ${result.student.name}</title>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; padding: 20px; }
+            h1 { text-align: center; color: #1f2937; }
+            .header { text-align: center; margin-bottom: 20px; }
+            .student-info { margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f2f2f2; }
+            .footer { text-align: center; font-size: 0.8em; margin-top: 30px; color: #6b7280; }
+            .verified { color: #10b981; font-weight: bold; }
+            .hash { font-family: monospace; word-break: break-all; font-size: 0.8em; color: #6b7280; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>Academic Result Certificate</h1>
+            <p>Issued on ${result.issueDate}</p>
+            <p>${result.semester}, ${result.academicYear}</p>
+          </div>
+          
+          <div class="student-info">
+            <h2>Student Information</h2>
+            <p><strong>Name:</strong> ${result.student.name}</p>
+            <p><strong>Roll Number:</strong> ${result.student.roll}</p>
+            <p><strong>Program:</strong> ${result.student.program}</p>
+          </div>
+          
+          <h2>Course Results</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Course Code</th>
+                <th>Course Name</th>
+                <th>Credits</th>
+                <th>Grade</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${result.courses.map((course) => {
+                const grade = result.grades.find(g => g.courseId === course.id);
+                return `
+                  <tr>
+                    <td>${course.code}</td>
+                    <td>${course.name}</td>
+                    <td>${course.credits}</td>
+                    <td>${grade?.grade || 'N/A'}</td>
+                  </tr>
+                `;
+              }).join('')}
+              <tr>
+                <td colspan="2" style="text-align: right;"><strong>Total Credits:</strong></td>
+                <td><strong>${getTotalCredits()}</strong></td>
+                <td></td>
+              </tr>
+            </tbody>
+          </table>
+          
+          <p><strong>GPA:</strong> ${result.gpa.toFixed(2)} / 4.0</p>
+          
+          <div class="hash">
+            <p><strong>Verification Hash:</strong> ${result.verificationHash}</p>
+            ${result.ipfsHash ? `<p><strong>IPFS Hash:</strong> ${result.ipfsHash}</p>` : ''}
+          </div>
+          
+          <div class="footer">
+            <p class="verified">✓ This document has been verified on the blockchain</p>
+            <p>This document can be verified online at: example.com/verify?hash=${result.verificationHash}</p>
+          </div>
+        </body>
+        </html>
+      `;
+      
+      printWindow.document.open();
+      printWindow.document.write(resultContent);
+      printWindow.document.close();
+      
+      // Wait for content to load before printing
+      printWindow.onload = function() {
+        printWindow.print();
+      };
+    }
   };
 
   return (
@@ -222,7 +314,16 @@ const ResultCard: React.FC<ResultCardProps> = ({ result, onClose }) => {
             <ExternalLink className="h-3 w-3" />
           </Button>
           
-          <Button onClick={onClose}>Close</Button>
+          <Button
+            variant="outline"
+            className="flex items-center gap-2"
+            onClick={handlePrintResult}
+          >
+            <DownloadCloud className="h-4 w-4" />
+            <span>Print Result</span>
+          </Button>
+          
+          {onClose && <Button onClick={onClose}>Close</Button>}
         </div>
       </CardFooter>
     </Card>
