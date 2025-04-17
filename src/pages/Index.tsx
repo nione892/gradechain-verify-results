@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -15,7 +14,6 @@ const Index = () => {
   const [animationComplete, setAnimationComplete] = useState(false);
   
   useEffect(() => {
-    // Start animation sequence after component mounts
     const timer = setTimeout(() => {
       setAnimationComplete(true);
     }, 500);
@@ -33,7 +31,6 @@ const Index = () => {
   
   const result = verifiedResultId ? getResultById(verifiedResultId) : null;
 
-  // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -69,7 +66,6 @@ const Index = () => {
     }
   };
 
-  // Trusted institutions
   const institutions = [
     { name: "University of Technology", icon: Building },
     { name: "Global Education Alliance", icon: Landmark },
@@ -77,7 +73,6 @@ const Index = () => {
     { name: "Academy of Sciences", icon: GraduationCap },
   ];
 
-  // Statistics
   const stats = [
     { value: "25,000+", label: "Academic Records", icon: Database },
     { value: "15+", label: "Partner Institutions", icon: Building },
@@ -85,7 +80,6 @@ const Index = () => {
     { value: "100%", label: "Tamper-Proof", icon: Shield },
   ];
 
-  // Benefits
   const benefits = [
     {
       title: "For Students",
@@ -207,7 +201,6 @@ const Index = () => {
               </div>
             </section>
             
-            {/* Statistics Section */}
             <motion.section 
               className="py-16 bg-muted/30 rounded-3xl mb-16"
               initial={{ opacity: 0 }}
@@ -251,7 +244,6 @@ const Index = () => {
               <VerificationForm onResultFound={handleResultFound} />
             </motion.section>
             
-            {/* Benefits Section */}
             <motion.section 
               className="mb-16"
               initial={{ opacity: 0 }}
@@ -285,7 +277,6 @@ const Index = () => {
               </div>
             </motion.section>
             
-            {/* Trusted By Section */}
             <motion.section 
               className="mb-16 bg-muted/20 py-12 rounded-3xl"
               initial={{ opacity: 0 }}
@@ -376,7 +367,6 @@ const Index = () => {
               </div>
             </motion.section>
             
-            {/* CTA Section */}
             <motion.section 
               className="mb-12 bg-gradient-to-r from-primary/10 to-secondary/10 p-10 rounded-3xl"
               initial={{ opacity: 0, y: 20 }}

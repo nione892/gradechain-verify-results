@@ -1,12 +1,12 @@
+
 import React, { useState, useEffect } from 'react';
-import { Search, ArrowRight, ShieldCheck, FileDigit, AlertTriangle, FileUp, Upload, QrCode } from 'lucide-react';
+import { Search, ArrowRight, ShieldCheck, FileDigit, AlertTriangle, FileUp, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { motion } from 'framer-motion';
 import { verifyResultHash } from '@/utils/web3Utils';
 import CertificateUploader from './CertificateUploader';
-import QrCodeScanner from './QrCodeScanner';
 import { processVerificationUrl } from '@/utils/web3Utils';
 
 interface VerificationFormProps {
@@ -29,7 +29,6 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
   const [showSuccess, setShowSuccess] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
-  const [showQrScanner, setShowQrScanner] = useState(false);
   
   useEffect(() => {
     // Check if the URL contains a verification parameter
@@ -76,71 +75,29 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
     setError(null);
     
     try {
-      // If using QR code, parse the data
-      let parsedData: DocumentData = {};
       let hashToVerify = hash;
       
       if (typeof hash === 'string' && hash.startsWith('{')) {
         try {
-          parsedData = JSON.parse(hash) as DocumentData;
+          const parsedData = JSON.parse(hash) as DocumentData;
           hashToVerify = parsedData.verify || '';
         } catch (e) {
-          console.error("Error parsing JSON from QR code:", e);
+          console.error("Error parsing JSON:", e);
         }
       }
       
       // If we have a verification hash, use it
       if (hashToVerify) {
         handleVerify(hashToVerify);
-      } else if (parsedData.verificationHash) {
-        handleVerify(parsedData.verificationHash);
       } else {
-        setError('Invalid QR code data. No verification hash found.');
+        setError('Invalid data. No verification hash found.');
         setIsVerifying(false);
       }
     } catch (error) {
-      console.error("QR verification error:", error);
-      setError('Error processing QR code data');
+      console.error("Verification error:", error);
+      setError('Error processing data');
       setIsVerifying(false);
     }
-  };
-  
-  const handleQrCodeScan = (data: string) => {
-    setIsVerifying(true);
-    setError(null);
-    
-    try {
-      // Parse the QR code data
-      let parsedData: DocumentData = {};
-      let hashToVerify = data;
-      
-      if (data.startsWith('{')) {
-        try {
-          parsedData = JSON.parse(data) as DocumentData;
-          hashToVerify = parsedData.verify || '';
-        } catch (e) {
-          console.error("Error parsing JSON from QR code:", e);
-        }
-      }
-      
-      // If we have a verification hash, use it
-      if (hashToVerify) {
-        handleVerify(hashToVerify);
-      } else if (parsedData.verificationHash) {
-        handleVerify(parsedData.verificationHash);
-      } else {
-        setError('Invalid QR code data. No verification hash found.');
-      }
-    } catch (error) {
-      console.error("QR verification error:", error);
-      setError('Error processing QR code data');
-    } finally {
-      setIsVerifying(false);
-    }
-  };
-
-  const handleCloseQrScanner = () => {
-    setShowQrScanner(false);
   };
   
   return (
@@ -156,10 +113,9 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
       </div>
       
       <Tabs defaultValue="id" className="w-full">
-        <TabsList className="grid grid-cols-3 mb-4">
+        <TabsList className="grid grid-cols-2 mb-4">
           <TabsTrigger value="id">Verification ID</TabsTrigger>
           <TabsTrigger value="upload">Upload Certificate</TabsTrigger>
-          <TabsTrigger value="qrcode">Scan QR Code</TabsTrigger>
         </TabsList>
         
         <TabsContent value="id" className="space-y-4">
@@ -208,15 +164,6 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
             onVerify={handleVerificationFromHash} 
             isVerifying={isVerifying} 
           />
-        </TabsContent>
-        
-        <TabsContent value="qrcode" className="flex justify-center">
-          <div className="max-w-md w-full">
-            <QrCodeScanner 
-              onScan={handleQrCodeScan} 
-              onClose={handleCloseQrScanner}
-            />
-          </div>
         </TabsContent>
       </Tabs>
       

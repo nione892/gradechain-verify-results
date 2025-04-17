@@ -1,4 +1,3 @@
-
 // Define the UserRole type
 export type UserRole = 'admin' | 'teacher' | 'student' | null;
 
@@ -15,6 +14,11 @@ export const GRADECHAIN_CONTRACT_ABI = [
 
 // Get user role based on wallet address
 export const getUserRole = (address: string): UserRole => {
+  // Check for specific admin address
+  if (address.toLowerCase() === '0x85d02f18ed4b394d2cfd07ba79ca8a7efa7d98b8') {
+    return 'admin';
+  }
+  
   // For blockchain implementation, this would query the contract
   const lastChar = address.charAt(address.length - 1).toLowerCase();
   
