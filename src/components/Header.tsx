@@ -1,206 +1,166 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { createContext, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Blocks, LayoutDashboard, Search, GraduationCap, Info, FileCheck } from 'lucide-react';
+import { Shield, Menu, X, Hexagon, LogOut, User, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import ConnectWallet from './ConnectWallet';
+import { connectWallet } from '@/utils/web3Utils';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { getUserRole, UserRole } from '@/utils/web3Utils';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
-import { getDeployedContractNetwork } from '@/utils/contractDeployer';
 
-// Create a context for blockchain mode
-export const BlockchainModeContext = React.createContext({
-  isRealBlockchainMode: false,
-  toggleBlockchainMode: () => {}
+interface BlockchainModeContextType {
+  isRealBlockchainMode: boolean;
+  toggleBlockchainMode: () => void;
+}
+
+// Create context with default values
+export const BlockchainModeContext = createContext<BlockchainModeContextType>({
+  isRealBlockchainMode: true,
+  toggleBlockchainMode: () => {},
 });
 
 const Header: React.FC = () => {
-  // Initialize blockchain mode from localStorage, default to false (testing mode)
-  const [isRealBlockchainMode, setIsRealBlockchainMode] = useState(() => {
-    const savedMode = localStorage.getItem('blockchainMode');
-    return savedMode === 'true';
-  });
+  const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<UserRole>(null);
-  const [networkName, setNetworkName] = useState<string>('');
+  const [isRealBlockchainMode, setIsRealBlockchainMode] = useState(true);
   const location = useLocation();
-  const { toast } = useToast();
-
-  // Update user role when wallet changes
-  useEffect(() => {
-    const checkWalletAndRole = async () => {
-      if (window.ethereum) {
-        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-        if (accounts.length > 0) {
-          const role = getUserRole(accounts[0]);
-          setUserRole(role);
-        } else {
-          setUserRole(null);
-        }
-      }
-    };
-
-    checkWalletAndRole();
-
-    // Listen for account changes
-    if (window.ethereum) {
-      window.ethereum.on('accountsChanged', (accounts: string[]) => {
-        if (accounts.length > 0) {
-          const role = getUserRole(accounts[0]);
-          setUserRole(role);
-        } else {
-          setUserRole(null);
-        }
-      });
-      
-      // Listen for chain/network changes
-      window.ethereum.on('chainChanged', () => {
-        updateNetworkInfo();
-      });
-    }
-
-    return () => {
-      // Cleanup listeners
-      if (window.ethereum && window.ethereum.removeListener) {
-        window.ethereum.removeListener('accountsChanged', () => {});
-        window.ethereum.removeListener('chainChanged', () => {});
-      }
-    };
-  }, []);
   
-  // Update network information when mode changes
-  useEffect(() => {
-    if (isRealBlockchainMode) {
-      updateNetworkInfo();
-    }
-    
-    // Save the current mode to localStorage for app-wide consistency
-    localStorage.setItem('blockchainMode', isRealBlockchainMode.toString());
-  }, [isRealBlockchainMode]);
-  
-  const updateNetworkInfo = async () => {
-    if (window.ethereum) {
-      try {
-        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
-        const networks: Record<string, string> = {
-          '0x1': 'Ethereum Mainnet',
-          '0x5': 'Goerli Testnet',
-          '0xaa36a7': 'Sepolia Testnet',
-          '0x13881': 'Mumbai Testnet',
-          '0x89': 'Polygon Mainnet'
-        };
-        
-        const name = networks[chainId] || `Chain ID: ${parseInt(chainId, 16)}`;
-        setNetworkName(name);
-        
-        // Switch to Sepolia if on another network and in deploy mode
-        if (isRealBlockchainMode && chainId !== '0xaa36a7') {
-          // Only prompt to switch networks if not already on Sepolia
-          toast({
-            title: "Network Notice",
-            description: "This app is designed to work with Sepolia Testnet. Please switch networks for full functionality.",
-          });
-        }
-      } catch (error) {
-        console.error('Error getting network:', error);
-      }
-    } else {
-      setNetworkName('');
-    }
-  };
-
+  // Always true for blockchain mode now that demo is removed
   const toggleBlockchainMode = () => {
-    const newMode = !isRealBlockchainMode;
-    setIsRealBlockchainMode(newMode);
-    
-    if (newMode && window.ethereum) {
-      updateNetworkInfo();
-    }
-    
-    toast({
-      title: newMode ? "Blockchain Deploy Mode" : "Local Testing Mode",
-      description: newMode 
-        ? (networkName 
-            ? `Transactions will be sent to ${networkName}` 
-            : "Transactions will be sent to the connected blockchain network")
-        : "Transactions will be simulated locally without blockchain interaction",
-    });
+    setIsRealBlockchainMode(true);
   };
-
+  
+  const handleConnect = async () => {
+    const address = await connectWallet();
+    if (address) {
+      setWalletAddress(address);
+      const role = getUserRole(address);
+      setUserRole(role);
+    }
+  };
+  
+  const handleDisconnect = () => {
+    setWalletAddress(null);
+    setUserRole(null);
+  };
+  
+  const isActive = (path: string) => {
+    return location.pathname === path;
+  };
+  
+  const navItems = [
+    { label: 'Home', path: '/' },
+    { label: 'Admin Portal', path: '/admin', requireRole: 'admin' as UserRole },
+    { label: 'Teacher Portal', path: '/teacher', requireRole: 'teacher' as UserRole },
+    { label: 'Student Portal', path: '/student', requireRole: 'student' as UserRole },
+  ];
+  
+  const filteredNavItems = navItems.filter(item => {
+    if (!item.requireRole) return true;
+    if (!userRole) return false;
+    return item.requireRole === userRole;
+  });
+  
   return (
     <BlockchainModeContext.Provider value={{ isRealBlockchainMode, toggleBlockchainMode }}>
-      <header className="border-b border-border">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <Link to="/" className="flex items-center space-x-2">
-            <Blocks className="h-8 w-8 text-primary" />
-            <div>
-              <h1 className="text-xl font-bold text-primary">GradeChain</h1>
-              <p className="text-xs text-muted-foreground">Blockchain Result Verification</p>
+      <header className="border-b shadow-sm bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <Link to="/" className="flex items-center">
+                <Hexagon className="h-8 w-8 text-primary mr-2" />
+                <span className="font-bold text-xl">GradeChain</span>
+              </Link>
+              
+              <nav className="hidden md:flex space-x-6 ml-10">
+                {filteredNavItems.map((item) => (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={`text-sm font-medium transition-colors hover:text-primary ${
+                      isActive(item.path) ? 'text-primary' : 'text-foreground/60'
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </nav>
             </div>
-          </Link>
-
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center mr-4 bg-muted/50 p-2 rounded-lg shadow-sm">
-              <Label htmlFor="blockchain-mode" className={`text-xs mr-2 ${isRealBlockchainMode ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
-                {isRealBlockchainMode 
-                  ? `Deploy Mode${networkName ? ` (${networkName})` : ''}` 
-                  : 'Testing Mode'}
-              </Label>
-              <Switch
-                id="blockchain-mode"
-                checked={isRealBlockchainMode}
-                onCheckedChange={toggleBlockchainMode}
-              />
+            
+            <div className="flex items-center space-x-4">
+              {walletAddress ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="flex items-center">
+                      <User className="h-4 w-4 mr-2" />
+                      <span className="hidden md:inline">
+                        {walletAddress.substring(0, 6)}...{walletAddress.substring(walletAddress.length - 4)}
+                      </span>
+                      <span className="md:hidden">Wallet</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>
+                      {userRole && `Role: ${userRole.charAt(0).toUpperCase() + userRole.slice(1)}`}
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleDisconnect}>
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Disconnect Wallet
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Button onClick={handleConnect} className="flex items-center">
+                  <LogIn className="h-4 w-4 mr-2" />
+                  <span>Connect Wallet</span>
+                </Button>
+              )}
+              
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="icon" className="md:hidden">
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right">
+                  <SheetHeader>
+                    <SheetTitle>
+                      <div className="flex items-center">
+                        <Hexagon className="h-6 w-6 text-primary mr-2" />
+                        <span>GradeChain</span>
+                      </div>
+                    </SheetTitle>
+                  </SheetHeader>
+                  <nav className="flex flex-col space-y-4 mt-6">
+                    {filteredNavItems.map((item) => (
+                      <Link
+                        key={item.path}
+                        to={item.path}
+                        className={`text-sm font-medium transition-colors hover:text-primary p-2 rounded ${
+                          isActive(item.path) ? 'bg-muted text-primary' : 'text-foreground/60'
+                        }`}
+                      >
+                        {item.label}
+                      </Link>
+                    ))}
+                  </nav>
+                </SheetContent>
+              </Sheet>
             </div>
-            
-            {userRole === 'admin' && (
-              <Link to="/admin">
-                <Button 
-                  variant={location.pathname === '/admin' ? 'default' : 'ghost'}
-                  className="flex items-center gap-2"
-                >
-                  <LayoutDashboard className="h-4 w-4" />
-                  Admin Dashboard
-                </Button>
-              </Link>
-            )}
-            
-            {userRole === 'teacher' && (
-              <Link to="/teacher">
-                <Button 
-                  variant={location.pathname === '/teacher' ? 'default' : 'ghost'}
-                  className="flex items-center gap-2"
-                >
-                  <FileCheck className="h-4 w-4" />
-                  Teacher Portal
-                </Button>
-              </Link>
-            )}
-            
-            {userRole === 'student' && (
-              <Link to="/student">
-                <Button 
-                  variant={location.pathname === '/student' ? 'default' : 'ghost'}
-                  className="flex items-center gap-2"
-                >
-                  <GraduationCap className="h-4 w-4" />
-                  My Results
-                </Button>
-              </Link>
-            )}
-            
-            <Link to="/">
-              <Button 
-                variant={location.pathname === '/' ? 'default' : 'ghost'}
-                className="flex items-center gap-2"
-              >
-                <Search className="h-4 w-4" />
-                Verify
-              </Button>
-            </Link>
-            
-            <ConnectWallet />
           </div>
         </div>
       </header>
