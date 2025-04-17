@@ -162,7 +162,7 @@ const ContractDeployment: React.FC = () => {
     <div className="bg-card p-6 rounded-lg border shadow-sm mb-8">
       <h2 className="text-xl font-semibold mb-4 flex items-center">
         <CodeIcon className="mr-2 h-5 w-5 text-primary" />
-        Smart Contract Deployment
+        GradeChain Contract Deployment
       </h2>
       
       <div className={`p-2 rounded-md mb-4 text-sm ${isRealBlockchainMode ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'}`}>

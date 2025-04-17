@@ -2,14 +2,15 @@
 // Define the UserRole type
 export type UserRole = 'admin' | 'teacher' | 'student' | null;
 
-// Added contract ABI for use in contractDeployer.ts
+// Updated contract ABI based on the provided GradeChain contract
 export const GRADECHAIN_CONTRACT_ABI = [
-  // ABI would go here in a real implementation
-  "function registerTeacher(address teacherAddress, string memory name) public",
-  "function uploadResult(string memory resultId, string memory resultHash) public",
-  "function verifyResult(string memory resultHash) public view returns (bool)",
-  "function uploadDocument(string memory documentId, string memory documentHash) public",
-  "function verifyDocument(string memory documentHash) public view returns (bool, string memory)"
+  "function addTeacher(address teacherAddress) public",
+  "function removeTeacher(address teacherAddress) public",
+  "function isTeacher(address teacherAddress) public view returns (bool)",
+  "function addResult(string studentId, bytes32 resultHash) public",
+  "function verifyResult(bytes32 resultHash) public view returns (bool, uint256, address)",
+  "function uploadDocument(string documentId, bytes32 documentHash) public",
+  "function verifyDocument(bytes32 documentHash) public view returns (bool, uint256, address)"
 ];
 
 // Get user role based on wallet address
@@ -55,7 +56,7 @@ export const registerTeacher = async (address: string, name: string) => {
         return { success: false, message: "No wallet connected" };
       }
       
-      // In a real implementation, this would call the smart contract's registerTeacher function
+      // In a real implementation, this would call the smart contract's addTeacher function
       return { success: true, message: "Teacher registered successfully" };
     } else {
       console.log("No Ethereum provider detected");
@@ -90,7 +91,7 @@ export const uploadResult = async (resultId: string, resultData: any): Promise<{
         return { success: false, message: "No wallet connected" };
       }
       
-      // In a real implementation, this would call the smart contract's uploadResult function
+      // In a real implementation, this would call the smart contract's addResult function
       console.log(`Uploading result: ${resultId} with data`, resultData);
       
       return { success: true, message: "Result uploaded to blockchain" };
@@ -103,12 +104,34 @@ export const uploadResult = async (resultId: string, resultData: any): Promise<{
   }
 };
 
+// Upload document to blockchain
+export const uploadDocument = async (documentId: string, documentHash: string): Promise<{success: boolean; message: string}> => {
+  try {
+    if (window.ethereum) {
+      const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+      if (accounts.length === 0) {
+        return { success: false, message: "No wallet connected" };
+      }
+      
+      // In a real implementation, this would call the smart contract's uploadDocument function
+      console.log(`Uploading document: ${documentId} with hash ${documentHash}`);
+      
+      return { success: true, message: "Document uploaded to blockchain" };
+    } else {
+      return { success: false, message: "No Ethereum provider detected" };
+    }
+  } catch (error) {
+    console.error("Error uploading document:", error);
+    return { success: false, message: "Error uploading document" };
+  }
+};
+
 // Verify result hash
 export const verifyResultHash = async (hash: string): Promise<{isVerified: boolean; resultId?: string; message?: string; studentName?: string}> => {
   try {
     console.log(`Verifying result hash: ${hash}`);
     
-    // In a blockchain implementation, this would verify the hash on the blockchain
+    // In a blockchain implementation, this would verify the hash on the blockchain using verifyResult
     // For now, we'll just return a basic implementation
     return { 
       isVerified: true,
@@ -122,14 +145,14 @@ export const verifyResultHash = async (hash: string): Promise<{isVerified: boole
 };
 
 // Verify document hash
-export const verifyDocumentHash = async (hash: string): Promise<{isVerified: boolean; resultId?: string; message?: string}> => {
+export const verifyDocumentHash = async (hash: string): Promise<{isVerified: boolean; documentId?: string; message?: string}> => {
   try {
     console.log(`Verifying document hash: ${hash}`);
     
-    // In a blockchain implementation, this would verify the document hash on the blockchain
+    // In a blockchain implementation, this would verify the document hash on the blockchain using verifyDocument
     return { 
       isVerified: true,
-      resultId: "RESULT-ID"
+      documentId: "DOC-ID"
     };
   } catch (error) {
     console.error("Error verifying document:", error);
@@ -158,4 +181,27 @@ export const getStudentResultsByWallet = async (address?: string): Promise<strin
   
   // Return empty array as we don't have demo data anymore
   return [];
+};
+
+// Remove teacher
+export const removeTeacher = async (address: string): Promise<{success: boolean; message: string}> => {
+  try {
+    console.log(`Removing teacher with address ${address}`);
+    
+    if (window.ethereum) {
+      const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+      if (accounts.length === 0) {
+        return { success: false, message: "No wallet connected" };
+      }
+      
+      // In a real implementation, this would call the smart contract's removeTeacher function
+      return { success: true, message: "Teacher removed successfully" };
+    } else {
+      console.log("No Ethereum provider detected");
+      return { success: false, message: "No Ethereum provider detected" };
+    }
+  } catch (error) {
+    console.error("Error removing teacher:", error);
+    return { success: false, message: "Error removing teacher" };
+  }
 };
