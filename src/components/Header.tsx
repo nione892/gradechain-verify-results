@@ -1,7 +1,7 @@
 
 import React, { createContext, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Shield, Menu, X, Hexagon, LogOut, User, LogIn } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Shield, Menu, X, Hexagon, LogOut, User, LogIn, GraduationCap, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { connectWallet } from '@/utils/web3Utils';
 import {
@@ -20,6 +20,16 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { getUserRole, UserRole } from '@/utils/web3Utils';
+import {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+  navigationMenuTriggerStyle,
+} from '@/components/ui/navigation-menu';
+import { toast } from "@/components/ui/use-toast";
 
 interface BlockchainModeContextType {
   isRealBlockchainMode: boolean;
@@ -37,8 +47,9 @@ const Header: React.FC = () => {
   const [userRole, setUserRole] = useState<UserRole>(null);
   const [isRealBlockchainMode, setIsRealBlockchainMode] = useState(true);
   const location = useLocation();
+  const navigate = useNavigate();
   
-  // Always true for blockchain mode now that demo is removed
+  // Always true for blockchain mode
   const toggleBlockchainMode = () => {
     setIsRealBlockchainMode(true);
   };
@@ -49,30 +60,40 @@ const Header: React.FC = () => {
       setWalletAddress(address);
       const role = getUserRole(address);
       setUserRole(role);
+      
+      // Redirect based on user role after connection
+      if (role === 'admin') {
+        navigate('/admin');
+      } else if (role === 'teacher') {
+        navigate('/teacher');
+      } else if (role === 'student') {
+        navigate('/student');
+      }
+      
+      toast({
+        title: "Wallet Connected",
+        description: `Connected as ${role || 'user'} with address ${address.substring(0, 6)}...${address.substring(address.length - 4)}`,
+      });
     }
   };
   
   const handleDisconnect = () => {
     setWalletAddress(null);
     setUserRole(null);
+    navigate('/'); // Redirect to home page after disconnecting
   };
   
   const isActive = (path: string) => {
     return location.pathname === path;
   };
   
-  const navItems = [
-    { label: 'Home', path: '/' },
-    { label: 'Admin Portal', path: '/admin', requireRole: 'admin' as UserRole },
-    { label: 'Teacher Portal', path: '/teacher', requireRole: 'teacher' as UserRole },
-    { label: 'Student Portal', path: '/student', requireRole: 'student' as UserRole },
-  ];
-  
-  const filteredNavItems = navItems.filter(item => {
-    if (!item.requireRole) return true;
-    if (!userRole) return false;
-    return item.requireRole === userRole;
-  });
+  // Check if user has access to a specific section
+  const hasAccess = (requiredRole: UserRole | 'any' | 'all'): boolean => {
+    if (requiredRole === 'any') return true;
+    if (requiredRole === 'all') return userRole === 'admin';
+    if (!userRole && requiredRole === null) return true;
+    return userRole === requiredRole;
+  };
   
   return (
     <BlockchainModeContext.Provider value={{ isRealBlockchainMode, toggleBlockchainMode }}>
@@ -85,19 +106,62 @@ const Header: React.FC = () => {
                 <span className="font-bold text-xl">GradeChain</span>
               </Link>
               
-              <nav className="hidden md:flex space-x-6 ml-10">
-                {filteredNavItems.map((item) => (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    className={`text-sm font-medium transition-colors hover:text-primary ${
-                      isActive(item.path) ? 'text-primary' : 'text-foreground/60'
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
-              </nav>
+              <div className="hidden md:flex ml-10">
+                <NavigationMenu>
+                  <NavigationMenuList>
+                    <NavigationMenuItem>
+                      <Link to="/" className={navigationMenuTriggerStyle()}>
+                        Home
+                      </Link>
+                    </NavigationMenuItem>
+                    
+                    {/* Admin Section - Only visible to admin */}
+                    {hasAccess('admin') && (
+                      <NavigationMenuItem>
+                        <Link to="/admin" className={navigationMenuTriggerStyle()}>
+                          <Shield className="h-4 w-4 mr-2" />
+                          Admin Portal
+                        </Link>
+                      </NavigationMenuItem>
+                    )}
+                    
+                    {/* Teacher Section - Only visible to teachers and admins */}
+                    {(hasAccess('teacher') || hasAccess('admin')) && (
+                      <NavigationMenuItem>
+                        <Link to="/teacher" className={navigationMenuTriggerStyle()}>
+                          <GraduationCap className="h-4 w-4 mr-2" />
+                          Teacher Portal
+                        </Link>
+                      </NavigationMenuItem>
+                    )}
+                    
+                    {/* Student Section - Visible to students and admins */}
+                    {(hasAccess('student') || hasAccess('admin')) && (
+                      <NavigationMenuItem>
+                        <Link to="/student" className={navigationMenuTriggerStyle()}>
+                          <BookOpen className="h-4 w-4 mr-2" />
+                          Student Portal
+                        </Link>
+                      </NavigationMenuItem>
+                    )}
+                    
+                    {/* Verification Section - Visible to all */}
+                    <NavigationMenuItem>
+                      <Link to="/#verification-form" 
+                        className={navigationMenuTriggerStyle()}
+                        onClick={(e) => {
+                          if (location.pathname === '/') {
+                            e.preventDefault();
+                            document.querySelector('#verification-form')?.scrollIntoView({ behavior: 'smooth' });
+                          }
+                        }}
+                      >
+                        Verify Certificate
+                      </Link>
+                    </NavigationMenuItem>
+                  </NavigationMenuList>
+                </NavigationMenu>
+              </div>
             </div>
             
             <div className="flex items-center space-x-4">
@@ -105,8 +169,12 @@ const Header: React.FC = () => {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" className="flex items-center">
-                      <User className="h-4 w-4 mr-2" />
+                      {userRole === 'admin' && <Shield className="h-4 w-4 mr-2" />}
+                      {userRole === 'teacher' && <GraduationCap className="h-4 w-4 mr-2" />}
+                      {userRole === 'student' && <User className="h-4 w-4 mr-2" />}
+                      {!userRole && <User className="h-4 w-4 mr-2" />}
                       <span className="hidden md:inline">
+                        {userRole && `${userRole.charAt(0).toUpperCase() + userRole.slice(1)}: `}
                         {walletAddress.substring(0, 6)}...{walletAddress.substring(walletAddress.length - 4)}
                       </span>
                       <span className="md:hidden">Wallet</span>
@@ -116,6 +184,25 @@ const Header: React.FC = () => {
                     <DropdownMenuLabel>
                       {userRole && `Role: ${userRole.charAt(0).toUpperCase() + userRole.slice(1)}`}
                     </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {userRole === 'admin' && (
+                      <DropdownMenuItem onClick={() => navigate('/admin')}>
+                        <Shield className="h-4 w-4 mr-2" />
+                        Admin Portal
+                      </DropdownMenuItem>
+                    )}
+                    {(userRole === 'teacher' || userRole === 'admin') && (
+                      <DropdownMenuItem onClick={() => navigate('/teacher')}>
+                        <GraduationCap className="h-4 w-4 mr-2" />
+                        Teacher Portal
+                      </DropdownMenuItem>
+                    )}
+                    {(userRole === 'student' || userRole === 'admin') && (
+                      <DropdownMenuItem onClick={() => navigate('/student')}>
+                        <BookOpen className="h-4 w-4 mr-2" />
+                        Student Portal
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleDisconnect}>
                       <LogOut className="h-4 w-4 mr-2" />
@@ -146,17 +233,73 @@ const Header: React.FC = () => {
                     </SheetTitle>
                   </SheetHeader>
                   <nav className="flex flex-col space-y-4 mt-6">
-                    {filteredNavItems.map((item) => (
+                    <Link
+                      to="/"
+                      className={`text-sm font-medium transition-colors hover:text-primary p-2 rounded ${
+                        isActive('/') ? 'bg-muted text-primary' : 'text-foreground/60'
+                      }`}
+                    >
+                      Home
+                    </Link>
+                    
+                    {/* Mobile: Admin Section - Only visible to admin */}
+                    {hasAccess('admin') && (
                       <Link
-                        key={item.path}
-                        to={item.path}
+                        to="/admin"
                         className={`text-sm font-medium transition-colors hover:text-primary p-2 rounded ${
-                          isActive(item.path) ? 'bg-muted text-primary' : 'text-foreground/60'
+                          isActive('/admin') ? 'bg-muted text-primary' : 'text-foreground/60'
                         }`}
                       >
-                        {item.label}
+                        <div className="flex items-center">
+                          <Shield className="h-4 w-4 mr-2" />
+                          <span>Admin Portal</span>
+                        </div>
                       </Link>
-                    ))}
+                    )}
+                    
+                    {/* Mobile: Teacher Section - Only visible to teachers and admins */}
+                    {(hasAccess('teacher') || hasAccess('admin')) && (
+                      <Link
+                        to="/teacher"
+                        className={`text-sm font-medium transition-colors hover:text-primary p-2 rounded ${
+                          isActive('/teacher') ? 'bg-muted text-primary' : 'text-foreground/60'
+                        }`}
+                      >
+                        <div className="flex items-center">
+                          <GraduationCap className="h-4 w-4 mr-2" />
+                          <span>Teacher Portal</span>
+                        </div>
+                      </Link>
+                    )}
+                    
+                    {/* Mobile: Student Section - Visible to students and admins */}
+                    {(hasAccess('student') || hasAccess('admin')) && (
+                      <Link
+                        to="/student"
+                        className={`text-sm font-medium transition-colors hover:text-primary p-2 rounded ${
+                          isActive('/student') ? 'bg-muted text-primary' : 'text-foreground/60'
+                        }`}
+                      >
+                        <div className="flex items-center">
+                          <BookOpen className="h-4 w-4 mr-2" />
+                          <span>Student Portal</span>
+                        </div>
+                      </Link>
+                    )}
+                    
+                    {/* Mobile: Verification Section - Visible to all */}
+                    <Link
+                      to="/#verification-form"
+                      className={`text-sm font-medium transition-colors hover:text-primary p-2 rounded text-foreground/60`}
+                      onClick={(e) => {
+                        if (location.pathname === '/') {
+                          e.preventDefault();
+                          document.querySelector('#verification-form')?.scrollIntoView({ behavior: 'smooth' });
+                        }
+                      }}
+                    >
+                      Verify Certificate
+                    </Link>
                   </nav>
                 </SheetContent>
               </Sheet>
