@@ -30,6 +30,7 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
   const [showSuccess, setShowSuccess] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [showQrScanner, setShowQrScanner] = useState(false);
   
   useEffect(() => {
     // Check if the URL contains a verification parameter
@@ -138,6 +139,10 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
       setIsVerifying(false);
     }
   };
+
+  const handleCloseQrScanner = () => {
+    setShowQrScanner(false);
+  };
   
   return (
     <div id="verification-form" className="bg-card p-6 rounded-xl border shadow-sm max-w-3xl mx-auto">
@@ -208,7 +213,10 @@ const VerificationForm: React.FC<VerificationFormProps> = ({ onResultFound }) =>
         
         <TabsContent value="qrcode" className="flex justify-center">
           <div className="max-w-md w-full">
-            <QrCodeScanner onScan={handleQrCodeScan} />
+            <QrCodeScanner 
+              onScan={handleQrCodeScan} 
+              onClose={handleCloseQrScanner}
+            />
           </div>
         </TabsContent>
       </Tabs>
